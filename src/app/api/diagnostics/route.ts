@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
   const diagnostics = {
     timestamp: new Date().toISOString(),
     environment: {},
-    supabaseConnection: null,
-    tables: {},
+    supabaseConnection: null as any,
+    tables: {} as any,
   };
 
   // Check environment variables
