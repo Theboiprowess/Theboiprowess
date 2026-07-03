@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
+import SmokeBackground from "@/components/effects/SmokeBackground";
 
 export default function Hero() {
   return (
@@ -12,8 +13,11 @@ export default function Hero() {
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920')] bg-cover bg-center opacity-20" />
       </div>
 
+      {/* Smoke Background Effect */}
+      <SmokeBackground opacity={0.3} speed={20} density={3} className="z-0" />
+
       {/* Content */}
-      <div className="relative container mx-auto px-4 py-32 text-center">
+      <div className="relative container mx-auto px-4 py-32 text-center z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -54,7 +58,7 @@ export default function Hero() {
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10"
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >

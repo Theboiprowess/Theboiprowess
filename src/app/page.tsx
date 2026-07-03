@@ -7,6 +7,8 @@ import LatestNews from "@/components/home/LatestNews";
 import UpcomingEvents from "@/components/home/UpcomingEvents";
 import Testimonials from "@/components/home/Testimonials";
 import GalleryPreview from "@/components/home/GalleryPreview";
+import PageLoadSmokeReveal from "@/components/effects/PageLoadSmokeReveal";
+import MouseSmokeTrail from "@/components/effects/MouseSmokeTrail";
 
 export const metadata: Metadata = {
   title: "Home | WISEDELL ACADEMY",
@@ -15,7 +17,8 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <>
+    <PageLoadSmokeReveal duration={1.5} opacity={0.5}>
+      <MouseSmokeTrail opacity={0.3} size={40} delay={50} />
       <Hero />
       <Statistics />
       <Features />
@@ -24,6 +27,6 @@ export default function Home() {
       <UpcomingEvents />
       <Testimonials />
       <GalleryPreview />
-    </>
+    </PageLoadSmokeReveal>
   );
 }
