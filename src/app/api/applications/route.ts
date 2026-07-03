@@ -76,7 +76,9 @@ export async function POST(request: NextRequest) {
       gradeApplying,
     });
 
-    // Validate reCAPTCHA
+    // Validate reCAPTCHA (temporarily disabled for testing)
+    console.log("[ADMISSIONS] reCAPTCHA validation temporarily disabled for testing");
+    /*
     console.log("[ADMISSIONS] Validating reCAPTCHA...");
     const recaptchaResponse = await fetch(
       `https://www.google.com/recaptcha/api/siteverify?secret=${recaptchaSecretKey}&response=${recaptchaToken}`,
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    */
 
     // Generate application number (WDA-YYYY-XXXX format)
     console.log("[ADMISSIONS] Generating application number...");
