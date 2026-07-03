@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     console.log("[TEST-DB] Testing database connection...");
     const { data: testData, error: testError } = await supabase
       .from("applications")
-      .select("count")
+      .select("*")
       .limit(1);
 
     if (testError) {
