@@ -6,20 +6,31 @@ import { getCurrentYear, getNextAcademicYear } from "@/lib/date-utils";
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  console.log("[ADMISSIONS] Application submission started at:", new Date().toISOString());
+  
   // Validate required environment variables
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const resendApiKey = process.env.RESEND_API_KEY;
   const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
 
+  console.log("[ADMISSIONS] Environment variables check:", {
+    hasSupabaseUrl: !!supabaseUrl,
+    hasSupabaseKey: !!supabaseServiceKey,
+    hasResendKey: !!resendApiKey,
+    hasRecaptchaSecret: !!recaptchaSecretKey,
+  });
+
   if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("[ADMISSIONS] Missing Supabase credentials");
     return NextResponse.json(
-      { error: "Server configuration error: Supabase credentials missing" },
+      { error: "Server configuration error: Database credentials missing" },
       { status: 500 }
     );
   }
 
   if (!recaptchaSecretKey) {
+    console.error("[ADMISSIONS] Missing reCAPTCHA secret");
     return NextResponse.json(
       { error: "Server configuration error: reCAPTCHA secret missing" },
       { status: 500 }
@@ -32,9 +43,11 @@ export async function POST(request: NextRequest) {
   // Get dynamic years
   const currentYear = getCurrentYear();
   const nextAcademicYear = getNextAcademicYear();
+  console.log("[ADMISSIONS] Academic year context:", { currentYear, nextAcademicYear });
 
   try {
     const formData = await request.formData();
+    console.log("[ADMISSIONS] Form data received, fields:", Array.from(formData.keys()));
 
     // Extract form data
     const firstName = formData.get("firstName") as string;
@@ -56,27 +69,42 @@ export async function POST(request: NextRequest) {
     const declaration = formData.get("declaration") === "true";
     const recaptchaToken = formData.get("recaptchaToken") as string;
 
+    console.log("[ADMISSIONS] Applicant info:", {
+      firstName,
+      lastName,
+      parentEmail,
+      gradeApplying,
+    });
+
     // Validate reCAPTCHA
+    console.log("[ADMISSIONS] Validating reCAPTCHA...");
     const recaptchaResponse = await fetch(
       `https://www.google.com/recaptcha/api/siteverify?secret=${recaptchaSecretKey}&response=${recaptchaToken}`,
       { method: "POST" }
     );
     const recaptchaData = await recaptchaResponse.json();
+    console.log("[ADMISSIONS] reCAPTCHA validation result:", recaptchaData.success);
 
     if (!recaptchaData.success) {
+      console.error("[ADMISSIONS] reCAPTCHA verification failed:", recaptchaData);
       return NextResponse.json(
-        { error: "reCAPTCHA verification failed" },
+        { error: "Security verification failed. Please refresh the page and try again." },
         { status: 400 }
       );
     }
 
     // Generate application number (WDA-YYYY-XXXX format)
-    const { data: lastApplication } = await supabase
+    console.log("[ADMISSIONS] Generating application number...");
+    const { data: lastApplication, error: lastAppError } = await supabase
       .from("applications")
       .select("application_number")
       .order("submitted_at", { ascending: false })
       .limit(1)
       .like("application_number", `WDA-${currentYear}-%`);
+
+    if (lastAppError) {
+      console.error("[ADMISSIONS] Error fetching last application number:", lastAppError);
+    }
 
     let nextNumber = 1;
     if (lastApplication && lastApplication.length > 0) {
@@ -85,48 +113,74 @@ export async function POST(request: NextRequest) {
     }
 
     const applicationNumber = `WDA-${currentYear}-${String(nextNumber).padStart(4, "0")}`;
+    console.log("[ADMISSIONS] Generated application number:", applicationNumber);
 
     // Handle file uploads
+    console.log("[ADMISSIONS] Processing file uploads...");
     let passportPhotoUrl = null;
     let resultsUploadUrl = null;
 
     const passportPhoto = formData.get("passportPhoto") as File;
     const resultsUpload = formData.get("resultsUpload") as File;
 
+    console.log("[ADMISSIONS] Files to upload:", {
+      hasPassportPhoto: !!passportPhoto && passportPhoto.size > 0,
+      hasResultsUpload: !!resultsUpload && resultsUpload.size > 0,
+    });
+
     if (passportPhoto && passportPhoto.size > 0) {
+      console.log("[ADMISSIONS] Uploading passport photo...");
       const passportPhotoExt = passportPhoto.name.split(".").pop();
       const passportPhotoName = `${applicationNumber}-passport.${passportPhotoExt}`;
+      
       const { data: passportUploadData, error: passportError } = await supabase.storage
         .from("application-documents")
         .upload(passportPhotoName, passportPhoto);
 
-      if (!passportError) {
-        const { data: passportPublicUrl } = supabase.storage
-          .from("application-documents")
-          .getPublicUrl(passportPhotoName);
-        passportPhotoUrl = passportPublicUrl.publicUrl;
+      if (passportError) {
+        console.error("[ADMISSIONS] Passport photo upload error:", passportError);
+        return NextResponse.json(
+          { error: `Failed to upload passport photo: ${passportError.message}` },
+          { status: 500 }
+        );
       }
+
+      const { data: passportPublicUrl } = supabase.storage
+        .from("application-documents")
+        .getPublicUrl(passportPhotoName);
+      passportPhotoUrl = passportPublicUrl.publicUrl;
+      console.log("[ADMISSIONS] Passport photo uploaded successfully");
     }
 
     if (resultsUpload && resultsUpload.size > 0) {
+      console.log("[ADMISSIONS] Uploading results document...");
       const resultsUploadExt = resultsUpload.name.split(".").pop();
       const resultsUploadName = `${applicationNumber}-results.${resultsUploadExt}`;
+      
       const { data: resultsUploadData, error: resultsError } = await supabase.storage
         .from("application-documents")
         .upload(resultsUploadName, resultsUpload);
 
-      if (!resultsError) {
-        const { data: resultsPublicUrl } = supabase.storage
-          .from("application-documents")
-          .getPublicUrl(resultsUploadName);
-        resultsUploadUrl = resultsPublicUrl.publicUrl;
+      if (resultsError) {
+        console.error("[ADMISSIONS] Results upload error:", resultsError);
+        return NextResponse.json(
+          { error: `Failed to upload results document: ${resultsError.message}` },
+          { status: 500 }
+        );
       }
+
+      const { data: resultsPublicUrl } = supabase.storage
+        .from("application-documents")
+        .getPublicUrl(resultsUploadName);
+      resultsUploadUrl = resultsPublicUrl.publicUrl;
+      console.log("[ADMISSIONS] Results document uploaded successfully");
     }
 
     // Parse subjects array
     const subjectsArray = subjects ? JSON.parse(subjects) : [];
 
     // Insert application into database
+    console.log("[ADMISSIONS] Inserting application into database...");
     const { data: application, error: insertError } = await supabase
       .from("applications")
       .insert({
@@ -156,15 +210,41 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error("Error inserting application:", insertError);
+      console.error("[ADMISSIONS] Database insert error:", insertError);
+      
+      // Provide specific error messages based on error type
+      if (insertError.code === "23505") {
+        return NextResponse.json(
+          { error: "An application with similar information already exists. Please contact the school directly." },
+          { status: 409 }
+        );
+      }
+      
+      if (insertError.code === "23502") {
+        return NextResponse.json(
+          { error: "Required field is missing. Please ensure all required fields are filled." },
+          { status: 400 }
+        );
+      }
+      
+      if (insertError.message.includes("connection")) {
+        return NextResponse.json(
+          { error: "Database connection error. Please try again later." },
+          { status: 503 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: "Failed to submit application" },
+        { error: `Database error: ${insertError.message}` },
         { status: 500 }
       );
     }
 
+    console.log("[ADMISSIONS] Application inserted successfully:", applicationNumber);
+
     // Send confirmation email to applicant
     if (resend) {
+      console.log("[ADMISSIONS] Sending confirmation email to applicant...");
       try {
         await resend.emails.send({
           from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
@@ -184,14 +264,18 @@ export async function POST(request: NextRequest) {
             </div>
           `,
         });
+        console.log("[ADMISSIONS] Confirmation email sent successfully");
       } catch (emailError) {
-        console.error("Error sending confirmation email:", emailError);
+        console.error("[ADMISSIONS] Error sending confirmation email:", emailError);
         // Don't fail the application if email fails
       }
+    } else {
+      console.log("[ADMISSIONS] Resend not configured, skipping email");
     }
 
     // Send notification email to Director
     if (resend) {
+      console.log("[ADMISSIONS] Sending notification email to director...");
       try {
         const adminDashboardUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/admin/applications`;
         
@@ -217,21 +301,46 @@ export async function POST(request: NextRequest) {
             </div>
           `,
         });
+        console.log("[ADMISSIONS] Director notification email sent successfully");
       } catch (emailError) {
-        console.error("Error sending director notification email:", emailError);
+        console.error("[ADMISSIONS] Error sending director notification email:", emailError);
         // Don't fail the application if email fails
       }
     }
 
+    console.log("[ADMISSIONS] Application submission completed successfully:", applicationNumber);
     return NextResponse.json({
       success: true,
       applicationNumber,
       message: "Application submitted successfully",
     });
   } catch (error) {
-    console.error("Error processing application:", error);
+    console.error("[ADMISSIONS] Unhandled error in application submission:", error);
+    
+    // Provide specific error messages based on error type
+    if (error instanceof Error) {
+      if (error.message.includes("fetch")) {
+        return NextResponse.json(
+          { error: "Network error. Please check your connection and try again." },
+          { status: 503 }
+        );
+      }
+      
+      if (error.message.includes("timeout")) {
+        return NextResponse.json(
+          { error: "Request timed out. Please try again." },
+          { status: 504 }
+        );
+      }
+      
+      return NextResponse.json(
+        { error: `Server error: ${error.message}` },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
