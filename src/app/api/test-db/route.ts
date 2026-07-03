@@ -23,25 +23,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
   try {
-    // Test 1: Simple connection test using rpc
-    console.log("[TEST-DB] Testing database connection via rpc...");
-    const { data: versionData, error: versionError } = await supabase.rpc('version');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log("[TEST-DB] Supabase client created successfully");
 
-    if (versionError) {
-      console.error("[TEST-DB] RPC version check failed:", versionError);
-      // Try alternative test
-    } else {
-      console.log("[TEST-DB] Database version:", versionData);
-    }
-
-    // Test 2: Try to query applications table directly
+    // Test 1: Try to query applications table using the same pattern as analytics route
     console.log("[TEST-DB] Testing applications table query...");
     const { data: testData, error: testError } = await supabase
       .from("applications")
-      .select("id")
+      .select("status, submitted_at")
       .limit(1);
 
     if (testError) {
