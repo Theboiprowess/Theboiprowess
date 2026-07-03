@@ -3,8 +3,11 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { getNextAcademicYear } from "@/lib/date-utils";
 
 export default function CallToAction() {
+  const nextAcademicYear = getNextAcademicYear();
+
   return (
     <section className="py-20 bg-gradient-to-r from-primary to-primary-dark">
       <div className="container mx-auto px-4">
@@ -15,7 +18,7 @@ export default function CallToAction() {
           className="max-w-4xl mx-auto text-center"
         >
           <h2 className="font-heading text-4xl md:text-5xl font-bold text-white mb-6">
-            Admissions Now Open for 2025
+            Admissions Now Open for {nextAcademicYear}
           </h2>
           <p className="text-xl text-gray-200 mb-8">
             Join our community of learners and leaders. Apply today to secure your place at WISEDELL ACADEMY.

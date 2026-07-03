@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { CheckCircle, FileText, User, Calendar } from "lucide-react";
+import { getNextAcademicYear } from "@/lib/date-utils";
 
 const requirements = [
   {
@@ -27,6 +28,8 @@ const requirements = [
 ];
 
 export default function AdmissionRequirements() {
+  const nextAcademicYear = getNextAcademicYear();
+
   return (
     <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
@@ -40,7 +43,7 @@ export default function AdmissionRequirements() {
             Admission Requirements
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Everything you need to know about applying to WISEDELL ACADEMY
+            Everything you need to know about applying to WISEDELL ACADEMY for the {nextAcademicYear} academic year
           </p>
         </motion.div>
 

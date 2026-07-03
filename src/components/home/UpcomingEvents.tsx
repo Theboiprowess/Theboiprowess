@@ -3,12 +3,15 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Calendar, Clock, MapPin, ArrowRight } from "lucide-react";
+import { getCurrentYear } from "@/lib/date-utils";
+
+const currentYear = getCurrentYear();
 
 const events = [
   {
     id: 1,
     title: "Term 1 Opening Day",
-    date: "2026-01-13",
+    date: `${currentYear}-01-13`,
     time: "07:30",
     location: "School Campus",
     description: "Students return for the start of Term 1. Orientation for new students.",
@@ -16,7 +19,7 @@ const events = [
   {
     id: 2,
     title: "Term 1 Closing Day",
-    date: "2026-04-02",
+    date: `${currentYear}-04-02`,
     time: "12:00",
     location: "School Campus",
     description: "End of Term 1. Students collect reports and holiday assignments.",
@@ -24,7 +27,7 @@ const events = [
   {
     id: 3,
     title: "Term 2 Opening Day",
-    date: "2026-05-05",
+    date: `${currentYear}-05-05`,
     time: "07:30",
     location: "School Campus",
     description: "Students return for the start of Term 2.",

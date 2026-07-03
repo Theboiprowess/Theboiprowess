@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { getCurrentYear, getNextAcademicYear } from "@/lib/date-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,10 @@ export async function POST(request: NextRequest) {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+  // Get dynamic years
+  const currentYear = getCurrentYear();
+  const nextAcademicYear = getNextAcademicYear();
 
   try {
     const formData = await request.formData();
@@ -65,8 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate application number (WDA-2026-XXXX format)
-    const currentYear = new Date().getFullYear();
+    // Generate application number (WDA-YYYY-XXXX format)
     const { data: lastApplication } = await supabase
       .from("applications")
       .select("application_number")
@@ -172,6 +176,7 @@ export async function POST(request: NextRequest) {
               <p>Dear ${parentName},</p>
               <p>Thank you for submitting an application to WISEDELL ACADEMY on behalf of ${firstName} ${lastName}.</p>
               <p><strong>Application Number:</strong> ${applicationNumber}</p>
+              <p><strong>Academic Year:</strong> ${nextAcademicYear}</p>
               <p><strong>Grade Applied For:</strong> ${gradeApplying}</p>
               <p>Your application has been received and is currently being reviewed. We will contact you shortly regarding the next steps.</p>
               <p>If you have any questions, please contact us at wisedellacademy@gmail.com or call +263 77 802 2980.</p>
@@ -200,6 +205,7 @@ export async function POST(request: NextRequest) {
               <p>A new application has been submitted to WISEDELL ACADEMY:</p>
               <ul>
                 <li><strong>Application Number:</strong> ${applicationNumber}</li>
+                <li><strong>Academic Year:</strong> ${nextAcademicYear}</li>
                 <li><strong>Student Name:</strong> ${firstName} ${lastName}</li>
                 <li><strong>Grade Applied For:</strong> ${gradeApplying}</li>
                 <li><strong>Parent Name:</strong> ${parentName}</li>

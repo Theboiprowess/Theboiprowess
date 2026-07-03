@@ -3,13 +3,16 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Calendar, ArrowRight } from "lucide-react";
+import { getCurrentYear } from "@/lib/date-utils";
+
+const currentYear = getCurrentYear();
 
 const newsItems = [
   {
     id: 1,
     title: "WISEDELL ACADEMY Celebrates Outstanding O-Level Results",
-    excerpt: "Our students have achieved exceptional results in the 2024 O-Level examinations with a 95% pass rate.",
-    date: "2024-01-15",
+    excerpt: "Our students have achieved exceptional results in the O-Level examinations with a 95% pass rate.",
+    date: `${currentYear}-01-15`,
     category: "Academic",
     image: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600",
   },
@@ -17,15 +20,15 @@ const newsItems = [
     id: 2,
     title: "New Classroom Block Opened",
     excerpt: "We are excited to announce the opening of our new classroom block, providing additional learning space for our growing student body.",
-    date: "2024-01-10",
+    date: `${currentYear}-01-10`,
     category: "Facilities",
     image: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600",
   },
   {
     id: 3,
-    title: "Sports Day 2024 - A Celebration of Excellence",
+    title: "Sports Day - A Celebration of Excellence",
     excerpt: "Our annual sports day was a tremendous success with students showcasing their athletic talents and team spirit.",
-    date: "2024-01-05",
+    date: `${currentYear}-01-05`,
     category: "Events",
     image: "https://images.unsplash.com/photo-1461896836934-voices-1?w=600",
   },

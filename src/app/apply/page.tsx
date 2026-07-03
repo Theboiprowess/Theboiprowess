@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import GoogleReCAPTCHA from "react-google-recaptcha";
+import { getNextAcademicYear } from "@/lib/date-utils";
 
 const applicationSchema = z.object({
   // Personal Details
@@ -66,6 +67,7 @@ const subjectOptions = [
 ];
 
 export default function ApplyPage() {
+  const nextAcademicYear = getNextAcademicYear();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
@@ -111,6 +113,9 @@ export default function ApplyPage() {
           formData.append(key, String(data[key as keyof ApplicationFormData]));
         }
       });
+
+      // Add dynamic academic year
+      formData.append("academicYear", String(nextAcademicYear));
 
       if (passportPhotoFile) {
         formData.append("passportPhoto", passportPhotoFile);
@@ -188,7 +193,7 @@ export default function ApplyPage() {
               Online Application
             </h1>
             <p className="text-gray-600 text-lg">
-              Apply to WISEDELL ACADEMY - Complete the form below to begin your journey with us.
+              Apply to WISEDELL ACADEMY for the {nextAcademicYear} academic year - Complete the form below to begin your journey with us.
             </p>
           </div>
 

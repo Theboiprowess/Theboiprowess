@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Users, FileText, Calendar, Image, Download, Settings, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { getCurrentYear, getNextAcademicYear, getCurrentAcademicSession } from "@/lib/date-utils";
 
 const stats = [
   {
@@ -81,6 +82,10 @@ const quickActions = [
 ];
 
 export default function DashboardOverview() {
+  const currentYear = getCurrentYear();
+  const nextAcademicYear = getNextAcademicYear();
+  const currentAcademicSession = getCurrentAcademicSession();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -88,6 +93,11 @@ export default function DashboardOverview() {
         <div className="container mx-auto px-4">
           <h1 className="font-heading text-3xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-gray-200">Welcome back! Here&apos;s what&apos;s happening at WISEDELL ACADEMY.</p>
+          <div className="mt-4 flex gap-6 text-sm">
+            <span>Current Year: {currentYear}</span>
+            <span>Current Academic Session: {currentAcademicSession}</span>
+            <span>Next Admission Year: {nextAcademicYear}</span>
+          </div>
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Facebook, Instagram, Youtube, Mail, Phone, MapPin, ArrowUp } from "lucide-react";
+import { getCopyrightYear } from "@/lib/date-utils";
 
 export default function Footer() {
   const scrollToTop = () => {
@@ -117,7 +118,7 @@ export default function Footer() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} WISEDELL ACADEMY. All rights reserved.
+              © {getCopyrightYear(2025)} WISEDELL ACADEMY. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm">
               <Link href="/privacy" className="text-gray-400 hover:text-secondary transition-colors">
