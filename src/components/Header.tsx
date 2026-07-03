@@ -108,12 +108,6 @@ export default function Header() {
 
             {/* CTA Buttons */}
             <div className="hidden lg:flex items-center gap-4">
-              <Link
-                href="/admissions"
-                className="bg-primary text-white px-6 py-2.5 rounded-full font-medium hover:bg-primary-dark transition-all hover:shadow-lg"
-              >
-                Apply Now
-              </Link>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -161,12 +155,6 @@ export default function Header() {
                     {item.name}
                   </Link>
                 ))}
-                <Link
-                  href="/admissions"
-                  className="bg-primary text-white px-6 py-3 rounded-lg font-medium text-center hover:bg-primary-dark transition-colors mt-2"
-                >
-                  Apply Now
-                </Link>
               </div>
             </div>
           )}
