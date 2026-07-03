@@ -115,9 +115,9 @@ export default function ApplicationForm() {
     try {
       const submitFormData = new FormData();
       
-      // Add form fields
+      // Add form fields (convert boolean to string)
       Object.entries(formData).forEach(([key, value]) => {
-        submitFormData.append(key, value);
+        submitFormData.append(key, typeof value === 'boolean' ? String(value) : value);
       });
 
       // Add files
