@@ -62,12 +62,13 @@ export default function SmokeBackground({
             height: layer.size,
             left: `${layer.x}%`,
             top: `${layer.y}%`,
-            background: `radial-gradient(circle, rgba(255,255,255,${opacity * 0.3}) 0%, rgba(50,50,50,${opacity * 0.2}) 50%, transparent 70%)`,
+            background: `radial-gradient(circle, rgba(255,255,255,${opacity * 0.6}) 0%, rgba(200,200,200,${opacity * 0.4}) 30%, rgba(100,100,100,${opacity * 0.3}) 60%, transparent 80%)`,
           }}
           animate={{
-            x: [0, 30, -30, 0],
-            y: [0, -30, 30, 0],
-            opacity: [opacity * 0.5, opacity, opacity * 0.5],
+            x: [0, 50, -50, 0],
+            y: [0, -50, 50, 0],
+            opacity: [opacity * 0.7, opacity, opacity * 0.7],
+            scale: [1, 1.2, 1],
           }}
           transition={{
             duration: layer.duration,

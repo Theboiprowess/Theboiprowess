@@ -14,7 +14,7 @@ export default function Hero() {
       </div>
 
       {/* Smoke Background Effect */}
-      <SmokeBackground opacity={0.3} speed={20} density={3} className="z-0" />
+      <SmokeBackground opacity={0.5} speed={15} density={4} className="z-0" />
 
       {/* Content */}
       <div className="relative container mx-auto px-4 py-32 text-center z-10">
