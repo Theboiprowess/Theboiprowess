@@ -3,11 +3,10 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
-import { Users, GraduationCap, BookOpen, Award } from "lucide-react";
+import { Users, BookOpen, Award } from "lucide-react";
 
 const stats = [
-  { icon: Users, label: "Students", value: 500, suffix: "+" },
-  { icon: GraduationCap, label: "Teachers", value: 35, suffix: "" },
+  { icon: Users, label: "Students", value: 200, suffix: "+" },
   { icon: BookOpen, label: "Subjects", value: 15, suffix: "+" },
   { icon: Award, label: "Years of Excellence", value: 10, suffix: "+" },
 ];
