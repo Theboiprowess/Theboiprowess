@@ -1,7 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, FileText, Calendar, Image, Download, Settings, TrendingUp } from "lucide-react";
+import { 
+  Users, FileText, Calendar, Image, Download, Settings, TrendingUp,
+  Plus, Bell, Upload, UserPlus, BookOpen, Phone, Mail, Newspaper,
+  Edit, Database, Shield, BarChart3, LogOut
+} from "lucide-react";
 import Link from "next/link";
 import { getCurrentYear, getNextAcademicYear, getCurrentAcademicSession } from "@/lib/date-utils";
 
@@ -38,46 +42,144 @@ const stats = [
 
 const quickActions = [
   {
-    title: "Manage Applications",
-    description: "Review and process student applications",
-    href: "/admin/applications",
+    title: "Add News",
+    description: "Create and publish news articles",
+    href: "/admin/news-events",
+    icon: Newspaper,
+    action: "create_news",
+  },
+  {
+    title: "Create Announcement",
+    description: "Post important announcements",
+    href: "/admin/news-events",
+    icon: Bell,
+    action: "create_announcement",
+  },
+  {
+    title: "Open Admissions",
+    description: "Enable admission applications",
+    href: "/admin/settings",
     icon: FileText,
+    action: "open_admissions",
   },
   {
-    title: "Manage Teachers",
-    description: "Add, edit, or remove teacher profiles",
-    href: "/admin/teachers",
-    icon: Users,
+    title: "Close Admissions",
+    description: "Disable admission applications",
+    href: "/admin/settings",
+    icon: FileText,
+    action: "close_admissions",
   },
   {
-    title: "Manage News & Events",
-    description: "Post news and manage upcoming events",
+    title: "Add Event",
+    description: "Create new school events",
     href: "/admin/news-events",
     icon: Calendar,
+    action: "create_event",
   },
   {
-    title: "Manage Gallery",
-    description: "Upload and organize gallery images",
+    title: "Upload Gallery Images",
+    description: "Add photos to gallery",
     href: "/admin/gallery",
-    icon: Image,
+    icon: Upload,
+    action: "upload_gallery",
+  },
+  {
+    title: "Add Teacher",
+    description: "Register new teacher",
+    href: "/admin/teachers",
+    icon: UserPlus,
+    action: "add_teacher",
+  },
+  {
+    title: "Add Student",
+    description: "Register new student",
+    href: "/admin/applications",
+    icon: Users,
+    action: "add_student",
+  },
+  {
+    title: "Manage Staff",
+    description: "View and manage staff",
+    href: "/admin/teachers",
+    icon: Users,
+    action: "manage_staff",
+  },
+  {
+    title: "Publish Notice",
+    description: "Publish school notices",
+    href: "/admin/news-events",
+    icon: Bell,
+    action: "publish_notice",
+  },
+  {
+    title: "Edit Homepage",
+    description: "Update homepage content",
+    href: "/admin/settings",
+    icon: Edit,
+    action: "edit_homepage",
+  },
+  {
+    title: "Update Contact Info",
+    description: "Edit contact details",
+    href: "/admin/settings",
+    icon: Phone,
+    action: "update_contact",
+  },
+  {
+    title: "Send Email Broadcast",
+    description: "Send mass emails",
+    href: "/admin/settings",
+    icon: Mail,
+    action: "send_email",
+  },
+  {
+    title: "Send SMS Notification",
+    description: "Send SMS alerts",
+    href: "/admin/settings",
+    icon: Phone,
+    action: "send_sms",
+  },
+  {
+    title: "Create Blog Post",
+    description: "Write and publish blog posts",
+    href: "/admin/news-events",
+    icon: Newspaper,
+    action: "create_blog",
+  },
+  {
+    title: "Manage Courses",
+    description: "Update course information",
+    href: "/admin/settings",
+    icon: BookOpen,
+    action: "manage_courses",
+  },
+  {
+    title: "Manage Academic Calendar",
+    description: "Update school calendar",
+    href: "/admin/settings",
+    icon: Calendar,
+    action: "manage_calendar",
   },
   {
     title: "Manage Downloads",
-    description: "Upload and manage downloadable resources",
+    description: "Upload downloadable files",
     href: "/admin/downloads",
     icon: Download,
+    action: "manage_downloads",
   },
   {
-    title: "Manage Users",
-    description: "Manage user accounts and permissions",
-    href: "/admin/users",
-    icon: Users,
+    title: "View Reports",
+    description: "Access analytics reports",
+    href: "/admin/dashboard",
+    icon: BarChart3,
+    action: "view_reports",
   },
   {
-    title: "Settings",
-    description: "Configure site settings and preferences",
+    title: "Backup Database",
+    description: "Create database backup",
     href: "/admin/settings",
-    icon: Settings,
+    icon: Database,
+    action: "backup_database",
   },
 ];
 
@@ -138,21 +240,21 @@ export default function DashboardOverview() {
           transition={{ delay: 0.3 }}
         >
           <h2 className="font-heading text-2xl font-bold text-primary mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {quickActions.map((action, index) => (
               <motion.div
                 key={action.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + index * 0.05 }}
+                transition={{ delay: 0.4 + index * 0.02 }}
               >
                 <Link href={action.href}>
-                  <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105 cursor-pointer h-full">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                      <action.icon className="text-primary" size={24} />
+                  <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all hover:scale-105 cursor-pointer h-full">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
+                      <action.icon className="text-primary" size={20} />
                     </div>
-                    <h3 className="font-heading text-lg font-bold text-primary mb-2">{action.title}</h3>
-                    <p className="text-gray-600 text-sm">{action.description}</p>
+                    <h3 className="font-heading text-sm font-bold text-primary mb-1">{action.title}</h3>
+                    <p className="text-gray-600 text-xs">{action.description}</p>
                   </div>
                 </Link>
               </motion.div>

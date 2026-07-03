@@ -366,3 +366,245 @@ INSERT INTO subjects (code, name, level, description, is_core) VALUES
 ('ACC', 'Accounting', 'A-Level', 'Financial accounting principles', false),
 ('ECON', 'Economics', 'A-Level', 'Micro and macro economics', false)
 ON CONFLICT (code) DO NOTHING;
+
+-- ============================================
+-- PHASE 1: ADDITIONAL TABLES FOR SCHOOL MANAGEMENT
+-- ============================================
+
+-- User Roles Table
+CREATE TABLE IF NOT EXISTS user_roles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  role VARCHAR(50) NOT NULL, -- 'super_admin', 'admin', 'admissions_officer', 'teacher', 'finance', 'content_manager'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, role)
+);
+
+-- Activity Logs Table
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id),
+  action VARCHAR(100) NOT NULL,
+  entity_type VARCHAR(50) NOT NULL, -- 'application', 'news', 'event', 'student', 'teacher', etc.
+  entity_id UUID,
+  details JSONB,
+  ip_address VARCHAR(45),
+  user_agent TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Homepage Content Table
+CREATE TABLE IF NOT EXISTS homepage_content (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  section VARCHAR(50) NOT NULL UNIQUE, -- 'hero', 'stats', 'about', 'testimonials', 'footer'
+  content JSONB NOT NULL,
+  updated_by UUID REFERENCES auth.users(id),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Academic Calendar Table
+CREATE TABLE IF NOT EXISTS academic_calendar (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  academic_year INTEGER NOT NULL,
+  term VARCHAR(50) NOT NULL, -- 'Term 1', 'Term 2', 'Term 3'
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  is_current BOOLEAN DEFAULT FALSE,
+  holidays JSONB, -- Array of holiday dates and descriptions
+  examination_dates JSONB, -- Array of exam dates
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Contact Information Table
+CREATE TABLE IF NOT EXISTS contact_info (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  phone VARCHAR(20),
+  alternative_phone VARCHAR(20),
+  email VARCHAR(255),
+  physical_address TEXT,
+  city VARCHAR(100),
+  country VARCHAR(100),
+  postal_code VARCHAR(20),
+  google_maps_url TEXT,
+  facebook_url VARCHAR(500),
+  instagram_url VARCHAR(500),
+  youtube_url VARCHAR(500),
+  twitter_url VARCHAR(500),
+  linkedin_url VARCHAR(500),
+  office_hours TEXT,
+  updated_by UUID REFERENCES auth.users(id),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- System Settings Table
+CREATE TABLE IF NOT EXISTS system_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  setting_key VARCHAR(100) UNIQUE NOT NULL,
+  setting_value TEXT NOT NULL,
+  description TEXT,
+  category VARCHAR(50), -- 'general', 'admissions', 'seo', 'smtp', 'security'
+  updated_by UUID REFERENCES auth.users(id),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Notification Queue Table
+CREATE TABLE IF NOT EXISTS notification_queue (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type VARCHAR(50) NOT NULL, -- 'email', 'sms'
+  recipient VARCHAR(255) NOT NULL,
+  subject VARCHAR(255),
+  content TEXT NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'sent', 'failed'
+  scheduled_at TIMESTAMP WITH TIME ZONE,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Announcements Table (separate from news for important notices)
+CREATE TABLE IF NOT EXISTS announcements (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  priority VARCHAR(20) DEFAULT 'normal', -- 'low', 'normal', 'high', 'urgent'
+  is_pinned BOOLEAN DEFAULT FALSE,
+  publish_date DATE NOT NULL,
+  expiry_date DATE,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Gallery Albums Table
+CREATE TABLE IF NOT EXISTS gallery_albums (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  cover_image_url VARCHAR(500),
+  order_index INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Update Gallery table to include album_id and video support
+ALTER TABLE gallery ADD COLUMN IF NOT EXISTS album_id UUID REFERENCES gallery_albums(id) ON DELETE SET NULL;
+ALTER TABLE gallery ADD COLUMN IF NOT EXISTS is_video BOOLEAN DEFAULT FALSE;
+ALTER TABLE gallery ADD COLUMN IF NOT EXISTS video_url VARCHAR(500);
+
+-- Update News table for scheduling and rich content
+ALTER TABLE news ADD COLUMN IF NOT EXISTS scheduled_publish_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE news ADD COLUMN IF NOT EXISTS tags TEXT[];
+ALTER TABLE news ADD COLUMN IF NOT EXISTS featured_image_url VARCHAR(500);
+ALTER TABLE news ADD COLUMN IF NOT EXISTS author_id UUID REFERENCES auth.users(id);
+
+-- Update Events table for registration and completion
+ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline DATE;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_required BOOLEAN DEFAULT FALSE;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS max_participants INTEGER;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS current_participants INTEGER DEFAULT 0;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
+
+-- Create indexes for new tables
+CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_academic_calendar_year ON academic_calendar(academic_year);
+CREATE INDEX IF NOT EXISTS idx_academic_calendar_current ON academic_calendar(is_current);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_status ON notification_queue(status);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_scheduled ON notification_queue(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_announcements_publish ON announcements(publish_date);
+CREATE INDEX IF NOT EXISTS idx_announcements_pinned ON announcements(is_pinned);
+CREATE INDEX IF NOT EXISTS idx_gallery_album ON gallery(album_id);
+CREATE INDEX IF NOT EXISTS idx_system_settings_category ON system_settings(category);
+
+-- Enable RLS for new tables
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE homepage_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_calendar ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contact_info ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gallery_albums ENABLE ROW LEVEL SECURITY;
+
+-- Policies for new tables
+-- User Roles
+CREATE POLICY "Users can read own roles" ON user_roles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admins can manage roles" ON user_roles FOR ALL USING (auth.role() = 'authenticated');
+
+-- Activity Logs
+CREATE POLICY "Admins can read activity logs" ON activity_logs FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "System can create activity logs" ON activity_logs FOR INSERT WITH CHECK (true);
+
+-- Homepage Content
+CREATE POLICY "Public can read homepage content" ON homepage_content FOR SELECT USING (true);
+CREATE POLICY "Admins can update homepage content" ON homepage_content FOR ALL USING (auth.role() = 'authenticated');
+
+-- Academic Calendar
+CREATE POLICY "Public can read academic calendar" ON academic_calendar FOR SELECT USING (true);
+CREATE POLICY "Admins can manage academic calendar" ON academic_calendar FOR ALL USING (auth.role() = 'authenticated');
+
+-- Contact Info
+CREATE POLICY "Public can read contact info" ON contact_info FOR SELECT USING (true);
+CREATE POLICY "Admins can update contact info" ON contact_info FOR ALL USING (auth.role() = 'authenticated');
+
+-- System Settings
+CREATE POLICY "Public can read public settings" ON system_settings FOR SELECT USING (category IN ('general', 'seo'));
+CREATE POLICY "Admins can manage system settings" ON system_settings FOR ALL USING (auth.role() = 'authenticated');
+
+-- Notification Queue
+CREATE POLICY "System can manage notifications" ON notification_queue FOR ALL USING (true);
+
+-- Announcements
+CREATE POLICY "Public can read active announcements" ON announcements FOR SELECT USING (
+  publish_date <= CURRENT_DATE AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)
+);
+CREATE POLICY "Admins can manage announcements" ON announcements FOR ALL USING (auth.role() = 'authenticated');
+
+-- Gallery Albums
+CREATE POLICY "Public can read gallery albums" ON gallery_albums FOR SELECT USING (true);
+CREATE POLICY "Admins can manage gallery albums" ON gallery_albums FOR ALL USING (auth.role() = 'authenticated');
+
+-- Add updated_at triggers for new tables
+CREATE TRIGGER update_homepage_content_updated_at BEFORE UPDATE ON homepage_content
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_academic_calendar_updated_at BEFORE UPDATE ON academic_calendar
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_contact_info_updated_at BEFORE UPDATE ON contact_info
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_system_settings_updated_at BEFORE UPDATE ON system_settings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_announcements_updated_at BEFORE UPDATE ON announcements
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_gallery_albums_updated_at BEFORE UPDATE ON gallery_albums
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert default system settings
+INSERT INTO system_settings (setting_key, setting_value, description, category) VALUES
+('school_name', 'WISEDELL ACADEMY', 'School name displayed throughout the site', 'general'),
+('admissions_status', 'open', 'Current admissions status: open or closed', 'admissions'),
+('admission_deadline', '2026-12-31', 'Last date for admission applications', 'admissions'),
+('current_academic_year', '2026', 'Current academic year', 'general'),
+('meta_description', 'WISEDELL ACADEMY - Empowering Future Leaders Through Academic Excellence in Masvingo, Zimbabwe', 'Default meta description for SEO', 'seo'),
+('meta_keywords', 'school, education, zimbabwe, masvingo, academy, secondary school, o-level, a-level', 'Default meta keywords for SEO', 'seo')
+ON CONFLICT (setting_key) DO NOTHING;
+
+-- Insert default contact information
+INSERT INTO contact_info (phone, email, physical_address, city, country, office_hours) VALUES
+('+263 77 802 2980', 'wisedellacademy@gmail.com', '3210 Jongwe Street, Pangolin', 'Masvingo', 'Zimbabwe', 'Monday - Friday: 7:30 AM - 4:30 PM')
+ON CONFLICT DO NOTHING;
+
+-- Insert default homepage content
+INSERT INTO homepage_content (section, content) VALUES
+('hero', '{"title": "Welcome to WISEDELL ACADEMY", "subtitle": "Empowering Future Leaders Through Academic Excellence", "motto": "With God We Work Hard and Shine", "cta_text": "Apply Now", "cta_link": "/admissions", "background_image": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920"}'),
+('stats', '{"students": "200+", "subjects": "15+", "years": "10+"}'),
+('about', '{"mission": "To provide quality education that nurtures academic excellence, character development, and spiritual growth.", "vision": "To be a leading educational institution in Zimbabwe, producing well-rounded individuals who contribute positively to society."}'),
+('footer', '{"copyright_start_year": "2025"}')
+ON CONFLICT (section) DO NOTHING;
