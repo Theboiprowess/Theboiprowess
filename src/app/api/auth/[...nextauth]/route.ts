@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 export const dynamic = 'force-dynamic';
 
 const handler = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production',
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -12,6 +13,13 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        // Validate secret at runtime
+        if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
+          throw new Error(
+            'NEXTAUTH_SECRET is not set in production environment. Please add it to your environment variables.'
+          );
+        }
+
         if (!credentials?.email || !credentials?.password) {
           return null;
         }

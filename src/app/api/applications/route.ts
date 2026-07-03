@@ -5,12 +5,28 @@ import { Resend } from "resend";
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-  );
+  // Validate required environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
 
-  const resend = new Resend(process.env.RESEND_API_KEY || "");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json(
+      { error: "Server configuration error: Supabase credentials missing" },
+      { status: 500 }
+    );
+  }
+
+  if (!recaptchaSecretKey) {
+    return NextResponse.json(
+      { error: "Server configuration error: reCAPTCHA secret missing" },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
   try {
     const formData = await request.formData();
@@ -37,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Validate reCAPTCHA
     const recaptchaResponse = await fetch(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+      `https://www.google.com/recaptcha/api/siteverify?secret=${recaptchaSecretKey}&response=${recaptchaToken}`,
       { method: "POST" }
     );
     const recaptchaData = await recaptchaResponse.json();
@@ -144,57 +160,61 @@ export async function POST(request: NextRequest) {
     }
 
     // Send confirmation email to applicant
-    try {
-      await resend.emails.send({
-        from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
-        to: parentEmail,
-        subject: "Application Received - WISEDELL ACADEMY",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #1e40af;">Application Received</h1>
-            <p>Dear ${parentName},</p>
-            <p>Thank you for submitting an application to WISEDELL ACADEMY on behalf of ${firstName} ${lastName}.</p>
-            <p><strong>Application Number:</strong> ${applicationNumber}</p>
-            <p><strong>Grade Applied For:</strong> ${gradeApplying}</p>
-            <p>Your application has been received and is currently being reviewed. We will contact you shortly regarding the next steps.</p>
-            <p>If you have any questions, please contact us at wisedellacademy@gmail.com or call +263 77 802 2980.</p>
-            <p>Best regards,<br>WISEDELL ACADEMY Administration</p>
-          </div>
-        `,
-      });
-    } catch (emailError) {
-      console.error("Error sending confirmation email:", emailError);
-      // Don't fail the application if email fails
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
+          to: parentEmail,
+          subject: "Application Received - WISEDELL ACADEMY",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #1e40af;">Application Received</h1>
+              <p>Dear ${parentName},</p>
+              <p>Thank you for submitting an application to WISEDELL ACADEMY on behalf of ${firstName} ${lastName}.</p>
+              <p><strong>Application Number:</strong> ${applicationNumber}</p>
+              <p><strong>Grade Applied For:</strong> ${gradeApplying}</p>
+              <p>Your application has been received and is currently being reviewed. We will contact you shortly regarding the next steps.</p>
+              <p>If you have any questions, please contact us at wisedellacademy@gmail.com or call +263 77 802 2980.</p>
+              <p>Best regards,<br>WISEDELL ACADEMY Administration</p>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Error sending confirmation email:", emailError);
+        // Don't fail the application if email fails
+      }
     }
 
     // Send notification email to Director
-    try {
-      const adminDashboardUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/admin/applications`;
-      
-      await resend.emails.send({
-        from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
-        to: "wisedellacademy@gmail.com",
-        subject: `New Application Received - ${applicationNumber}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #1e40af;">New Application Received</h1>
-            <p>A new application has been submitted to WISEDELL ACADEMY:</p>
-            <ul>
-              <li><strong>Application Number:</strong> ${applicationNumber}</li>
-              <li><strong>Student Name:</strong> ${firstName} ${lastName}</li>
-              <li><strong>Grade Applied For:</strong> ${gradeApplying}</li>
-              <li><strong>Parent Name:</strong> ${parentName}</li>
-              <li><strong>Parent Phone:</strong> ${parentPhone}</li>
-              <li><strong>Parent Email:</strong> ${parentEmail}</li>
-            </ul>
-            <p><a href="${adminDashboardUrl}" style="background-color: #1e40af; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Application in Admin Dashboard</a></p>
-            <p>Please review this application at your earliest convenience.</p>
-          </div>
-        `,
-      });
-    } catch (emailError) {
-      console.error("Error sending director notification email:", emailError);
-      // Don't fail the application if email fails
+    if (resend) {
+      try {
+        const adminDashboardUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/admin/applications`;
+        
+        await resend.emails.send({
+          from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
+          to: "wisedellacademy@gmail.com",
+          subject: `New Application Received - ${applicationNumber}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #1e40af;">New Application Received</h1>
+              <p>A new application has been submitted to WISEDELL ACADEMY:</p>
+              <ul>
+                <li><strong>Application Number:</strong> ${applicationNumber}</li>
+                <li><strong>Student Name:</strong> ${firstName} ${lastName}</li>
+                <li><strong>Grade Applied For:</strong> ${gradeApplying}</li>
+                <li><strong>Parent Name:</strong> ${parentName}</li>
+                <li><strong>Parent Phone:</strong> ${parentPhone}</li>
+                <li><strong>Parent Email:</strong> ${parentEmail}</li>
+              </ul>
+              <p><a href="${adminDashboardUrl}" style="background-color: #1e40af; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Application in Admin Dashboard</a></p>
+              <p>Please review this application at your earliest convenience.</p>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Error sending director notification email:", emailError);
+        // Don't fail the application if email fails
+      }
     }
 
     return NextResponse.json({
