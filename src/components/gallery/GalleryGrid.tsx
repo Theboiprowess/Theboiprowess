@@ -1,26 +1,41 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
-const galleryImages = [
-  { id: 1, category: "Academic", title: "Classroom Learning", height: "h-64" },
-  { id: 2, category: "Sports", title: "Football Match", height: "h-80" },
-  { id: 3, category: "Events", title: "School Assembly", height: "h-64" },
-  { id: 4, category: "Academic", title: "Mathematics Class", height: "h-72" },
-  { id: 5, category: "Sports", title: "Basketball Team", height: "h-64" },
-  { id: 6, category: "Events", title: "Prize Giving", height: "h-80" },
-  { id: 7, category: "Academic", title: "English Lesson", height: "h-64" },
-  { id: 8, category: "Sports", title: "Athletics Day", height: "h-72" },
-  { id: 9, category: "Events", title: "Sports Day", height: "h-64" },
-  { id: 10, category: "Academic", title: "Commerce Lesson", height: "h-80" },
-  { id: 11, category: "Sports", title: "Volleyball Match", height: "h-64" },
-  { id: 12, category: "Academic", title: "Heritage Studies", height: "h-72" },
-];
+interface GalleryItem {
+  id: string;
+  title: string | null;
+  description: string | null;
+  image_url: string;
+  category: string | null;
+  album: string | null;
+  featured: boolean;
+  order_index: number;
+}
 
 export default function GalleryGrid() {
+  const [galleryImages, setGalleryImages] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchGallery();
+  }, []);
+
+  const fetchGallery = async () => {
+    try {
+      const response = await fetch("/api/gallery");
+      if (!response.ok) throw new Error("Failed to fetch gallery");
+      const data = await response.json();
+      setGalleryImages(data || []);
+    } catch (error) {
+      console.error("Error fetching gallery:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePrevious = () => {
     if (selectedImage === null) return;
@@ -37,6 +52,41 @@ export default function GalleryGrid() {
       return prev === galleryImages.length - 1 ? 0 : prev + 1;
     });
   };
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (galleryImages.length === 0) {
+    return (
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center"
+          >
+            <h1 className="font-heading text-4xl md:text-5xl font-bold text-primary mb-4">
+              Photo Gallery
+            </h1>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Capturing memorable moments and achievements at WISEDELL ACADEMY
+            </p>
+            <p className="text-gray-500 mt-8">No images available yet.</p>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 bg-white">
@@ -68,19 +118,23 @@ export default function GalleryGrid() {
             >
               <div
                 onClick={() => setSelectedImage(index)}
-                className={`relative ${image.height} bg-gradient-to-br from-primary to-primary-dark rounded-2xl overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl transition-shadow`}
+                className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-lg hover:shadow-xl transition-shadow"
               >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-white/50 text-sm">{image.title}</span>
-                </div>
+                <img
+                  src={image.image_url}
+                  alt={image.title || "Gallery image"}
+                  className="w-full object-cover"
+                />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <span className="text-white font-semibold">View Image</span>
                 </div>
-                <div className="absolute top-4 left-4">
-                  <span className="bg-secondary text-primary text-xs font-bold px-3 py-1 rounded-full">
-                    {image.category}
-                  </span>
-                </div>
+                {(image.category || image.album) && (
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-secondary text-primary text-xs font-bold px-3 py-1 rounded-full">
+                      {image.category || image.album}
+                    </span>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}
@@ -100,7 +154,7 @@ export default function GalleryGrid() {
                 e.stopPropagation();
                 setSelectedImage(null);
               }}
-              className="absolute top-4 right-4 text-white hover:text-secondary transition-colors"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
             >
               <X size={32} />
             </button>
@@ -110,7 +164,7 @@ export default function GalleryGrid() {
                 e.stopPropagation();
                 handlePrevious();
               }}
-              className="absolute left-4 text-white hover:text-secondary transition-colors"
+              className="absolute left-4 text-white hover:text-gray-300 transition-colors"
             >
               <ChevronLeft size={48} />
             </button>
@@ -120,25 +174,17 @@ export default function GalleryGrid() {
                 e.stopPropagation();
                 handleNext();
               }}
-              className="absolute right-4 text-white hover:text-secondary transition-colors"
+              className="absolute right-4 text-white hover:text-gray-300 transition-colors"
             >
               <ChevronRight size={48} />
             </button>
 
-            <div className="max-w-4xl w-full">
-              <div className="aspect-video bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center mb-4">
-                <span className="text-white/50 text-2xl">{galleryImages[selectedImage].title}</span>
-              </div>
-              <div className="text-center text-white">
-                <h3 className="font-heading text-2xl font-bold mb-2">
-                  {galleryImages[selectedImage].title}
-                </h3>
-                <p className="text-gray-300">{galleryImages[selectedImage].category}</p>
-                <p className="text-gray-400 text-sm mt-2">
-                  {selectedImage + 1} / {galleryImages.length}
-                </p>
-              </div>
-            </div>
+            <img
+              src={galleryImages[selectedImage].image_url}
+              alt={galleryImages[selectedImage].title || "Gallery image"}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
           </motion.div>
         )}
       </div>
