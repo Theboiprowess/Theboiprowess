@@ -127,6 +127,32 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (session) {
       fetchApplications();
+
+      // Set up Supabase Realtime subscription
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      );
+
+      const channel = supabase
+        .channel('applications-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'applications'
+          },
+          () => {
+            console.log('[DASHBOARD] Applications changed, refreshing...');
+            fetchApplications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [session]);
 
