@@ -78,6 +78,17 @@ CREATE TABLE IF NOT EXISTS gallery (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add missing columns if table already exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'gallery') THEN
+    -- Check and add album column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'album') THEN
+      ALTER TABLE gallery ADD COLUMN album VARCHAR(100);
+    END IF;
+  END IF;
+END $$;
+
 -- Indexes for gallery
 CREATE INDEX IF NOT EXISTS idx_gallery_category ON gallery(category);
 CREATE INDEX IF NOT EXISTS idx_gallery_album ON gallery(album);
@@ -308,9 +319,21 @@ CREATE TABLE IF NOT EXISTS academic_calendar (
   end_date DATE,
   academic_year VARCHAR(20) NOT NULL,
   term VARCHAR(50),
+  is_holiday BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add missing columns if table already exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'academic_calendar') THEN
+    -- Check and add is_holiday column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'academic_calendar' AND column_name = 'is_holiday') THEN
+      ALTER TABLE academic_calendar ADD COLUMN is_holiday BOOLEAN DEFAULT FALSE;
+    END IF;
+  END IF;
+END $$;
 
 -- Indexes for academic_calendar
 CREATE INDEX IF NOT EXISTS idx_calendar_year ON academic_calendar(academic_year);
@@ -340,17 +363,39 @@ CREATE TABLE IF NOT EXISTS downloads (
   description TEXT,
   file_url VARCHAR(500) NOT NULL,
   file_type VARCHAR(50), -- 'pdf', 'doc', 'docx', 'zip', etc.
-  file_size INTEGER, -- in bytes
+  file_size VARCHAR(50), -- e.g., '2.5 MB'
   category VARCHAR(50), -- 'forms', 'handbooks', 'policies', 'exam_papers', etc.
   download_count INTEGER DEFAULT 0,
-  is_active BOOLEAN DEFAULT TRUE,
+  published BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add missing columns if table already exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'downloads') THEN
+    -- Check and add published column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'downloads' AND column_name = 'published') THEN
+      ALTER TABLE downloads ADD COLUMN published BOOLEAN DEFAULT FALSE;
+    END IF;
+    -- Check and add file_size column if it doesn't exist (change from INTEGER to VARCHAR)
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'downloads' AND column_name = 'file_size' AND data_type = 'integer') THEN
+      ALTER TABLE downloads ALTER COLUMN file_size TYPE VARCHAR(50) USING file_size::VARCHAR(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'downloads' AND column_name = 'file_size') THEN
+      ALTER TABLE downloads ADD COLUMN file_size VARCHAR(50);
+    END IF;
+    -- Drop is_active column if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'downloads' AND column_name = 'is_active') THEN
+      ALTER TABLE downloads DROP COLUMN is_active;
+    END IF;
+  END IF;
+END $$;
+
 -- Indexes for downloads
 CREATE INDEX IF NOT EXISTS idx_downloads_category ON downloads(category);
-CREATE INDEX IF NOT EXISTS idx_downloads_active ON downloads(is_active);
+CREATE INDEX IF NOT EXISTS idx_downloads_published ON downloads(published);
 
 -- Enable RLS
 ALTER TABLE downloads ENABLE ROW LEVEL SECURITY;
@@ -374,15 +419,32 @@ CREATE TABLE IF NOT EXISTS email_broadcasts (
   subject VARCHAR(255) NOT NULL,
   content TEXT NOT NULL,
   target_audience VARCHAR(50), -- 'all', 'students', 'teachers', 'parents'
-  recipient_count INTEGER DEFAULT 0,
   sent_count INTEGER DEFAULT 0,
-  status VARCHAR(20) DEFAULT 'draft', -- 'draft', 'scheduled', 'sent', 'failed'
+  status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'sent', 'failed'
   scheduled_at TIMESTAMP WITH TIME ZONE,
   sent_at TIMESTAMP WITH TIME ZONE,
-  created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add missing columns if table already exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'email_broadcasts') THEN
+    -- Check and add sent_count column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_broadcasts' AND column_name = 'sent_count') THEN
+      ALTER TABLE email_broadcasts ADD COLUMN sent_count INTEGER DEFAULT 0;
+    END IF;
+    -- Drop recipient_count column if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_broadcasts' AND column_name = 'recipient_count') THEN
+      ALTER TABLE email_broadcasts DROP COLUMN recipient_count;
+    END IF;
+    -- Drop created_by column if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_broadcasts' AND column_name = 'created_by') THEN
+      ALTER TABLE email_broadcasts DROP COLUMN created_by;
+    END IF;
+  END IF;
+END $$;
 
 -- Indexes for email_broadcasts
 CREATE INDEX IF NOT EXISTS idx_email_broadcasts_status ON email_broadcasts(status);
@@ -401,3 +463,65 @@ CREATE POLICY "Admins can read email_broadcasts" ON email_broadcasts FOR SELECT 
 CREATE POLICY "Admins can create email_broadcasts" ON email_broadcasts FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Admins can update email_broadcasts" ON email_broadcasts FOR UPDATE USING (auth.role() = 'authenticated');
 CREATE POLICY "Admins can delete email_broadcasts" ON email_broadcasts FOR DELETE USING (auth.role() = 'authenticated');
+
+-- ============================================
+-- SMS NOTIFICATIONS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  message TEXT NOT NULL,
+  recipient_type VARCHAR(50), -- 'all', 'students', 'teachers', 'parents'
+  sent_count INTEGER DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'sent', 'failed'
+  scheduled_at TIMESTAMP WITH TIME ZONE,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for sms_notifications
+CREATE INDEX IF NOT EXISTS idx_sms_notifications_status ON sms_notifications(status);
+CREATE INDEX IF NOT EXISTS idx_sms_notifications_created_at ON sms_notifications(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE sms_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Policies for sms_notifications
+DROP POLICY IF EXISTS "Admins can read sms_notifications" ON sms_notifications;
+DROP POLICY IF EXISTS "Admins can create sms_notifications" ON sms_notifications;
+DROP POLICY IF EXISTS "Admins can update sms_notifications" ON sms_notifications;
+DROP POLICY IF EXISTS "Admins can delete sms_notifications" ON sms_notifications;
+
+CREATE POLICY "Admins can read sms_notifications" ON sms_notifications FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Admins can create sms_notifications" ON sms_notifications FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admins can update sms_notifications" ON sms_notifications FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Admins can delete sms_notifications" ON sms_notifications FOR DELETE USING (auth.role() = 'authenticated');
+
+-- ============================================
+-- DATABASE BACKUPS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS database_backups (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  file_name VARCHAR(255) NOT NULL,
+  file_size VARCHAR(50),
+  backup_type VARCHAR(50), -- 'full', 'structure', 'data'
+  status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'completed', 'failed'
+  file_url VARCHAR(500),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for database_backups
+CREATE INDEX IF NOT EXISTS idx_database_backups_status ON database_backups(status);
+CREATE INDEX IF NOT EXISTS idx_database_backups_created_at ON database_backups(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE database_backups ENABLE ROW LEVEL SECURITY;
+
+-- Policies for database_backups
+DROP POLICY IF EXISTS "Admins can read database_backups" ON database_backups;
+DROP POLICY IF EXISTS "Admins can create database_backups" ON database_backups;
+DROP POLICY IF EXISTS "Admins can delete database_backups" ON database_backups;
+
+CREATE POLICY "Admins can read database_backups" ON database_backups FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Admins can create database_backups" ON database_backups FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admins can delete database_backups" ON database_backups FOR DELETE USING (auth.role() = 'authenticated');
