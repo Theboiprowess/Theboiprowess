@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
       console.log("[ADMISSIONS] Sending confirmation email to applicant...");
       try {
         const emailResult = await resend.emails.send({
-          from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
+          from: "WISEDELL ACADEMY <noreply@wisedellacademy.co.zw>",
           to: parentEmail,
           subject: "Application Received – Wisedell Academy",
           html: `
@@ -412,7 +412,7 @@ export async function POST(request: NextRequest) {
         const adminDashboardUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/admin/applications`;
         
         const directorEmailResult = await resend.emails.send({
-          from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
+          from: "WISEDELL ACADEMY <noreply@wisedellacademy.co.zw>",
           to: "wisedellacademy@gmail.com",
           subject: `New Application Received - ${applicationNumber}`,
           html: `
