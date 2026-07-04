@@ -49,12 +49,9 @@ export default function ApplicationsPage() {
 
   const fetchApplications = async () => {
     try {
-      const { data, error } = await supabase
-        .from("applications")
-        .select("*")
-        .order("submitted_at", { ascending: false });
-
-      if (error) throw error;
+      const response = await fetch("/api/admin/applications");
+      if (!response.ok) throw new Error("Failed to fetch applications");
+      const data = await response.json();
       setApplications(data || []);
     } catch (error) {
       console.error("Error fetching applications:", error);

@@ -13,6 +13,7 @@ export default function ApplicationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applicationNumber, setApplicationNumber] = useState<string | null>(null);
+  const [emailWarning, setEmailWarning] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -143,6 +144,12 @@ export default function ApplicationForm() {
       }
 
       setApplicationNumber(data.applicationNumber);
+      
+      // Check if email was sent successfully
+      if (!data.emailSent && data.emailError) {
+        setEmailWarning(`Your application has been received (Application #${data.applicationNumber}), but we could not send the confirmation email. Please contact us at wisedellacademy@gmail.com for confirmation.`);
+      }
+      
       setIsSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred");
@@ -169,6 +176,14 @@ export default function ApplicationForm() {
             <p className="text-gray-600 text-lg mb-4">
               Thank you for your interest in WISEDELL ACADEMY. We have received your application and will contact you within 3-5 business days.
             </p>
+            {emailWarning && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+                  <p className="text-yellow-800 text-sm text-left">{emailWarning}</p>
+                </div>
+              </div>
+            )}
             {applicationNumber && (
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-gray-600 mb-1">Your Application Number:</p>
@@ -179,6 +194,7 @@ export default function ApplicationForm() {
               onClick={() => {
                 setIsSubmitted(false);
                 setApplicationNumber(null);
+                setEmailWarning(null);
                 setFormData({
                   firstName: "",
                   lastName: "",

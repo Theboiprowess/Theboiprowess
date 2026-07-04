@@ -299,10 +299,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Send confirmation email to applicant
+    let emailSent = false;
+    let emailError = null;
     if (resend) {
       console.log("[ADMISSIONS] Sending confirmation email to applicant...");
       try {
-        await resend.emails.send({
+        const emailResult = await resend.emails.send({
           from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
           to: parentEmail,
           subject: "Application Received – Wisedell Academy",
@@ -377,13 +379,16 @@ export async function POST(request: NextRequest) {
             </html>
           `,
         });
-        console.log("[ADMISSIONS] Confirmation email sent successfully");
+        console.log("[ADMISSIONS] Confirmation email sent successfully:", emailResult);
+        emailSent = true;
       } catch (emailError) {
         console.error("[ADMISSIONS] Error sending confirmation email:", emailError);
-        // Don't fail the application if email fails
+        emailError = emailError instanceof Error ? emailError.message : String(emailError);
+        // Don't fail the application if email fails, but track it
       }
     } else {
       console.log("[ADMISSIONS] Resend not configured, skipping email");
+      emailError = "Email service not configured";
     }
 
     // Send notification email to Director
@@ -426,6 +431,8 @@ export async function POST(request: NextRequest) {
       success: true,
       applicationNumber,
       message: "Application submitted successfully",
+      emailSent,
+      emailError: emailError || undefined,
     });
   } catch (error) {
     console.error("[ADMISSIONS] Unhandled error in application submission:", error);
