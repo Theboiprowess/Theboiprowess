@@ -52,18 +52,10 @@ export default function AdminDashboard() {
   const [gradeFilter, setGradeFilter] = useState("all");
 
   const fetchApplications = async () => {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-    );
-
     try {
-      const { data, error } = await supabase
-        .from("applications")
-        .select("*")
-        .order("submitted_at", { ascending: false });
-
-      if (error) throw error;
+      const response = await fetch("/api/admin/applications");
+      if (!response.ok) throw new Error("Failed to fetch applications");
+      const data = await response.json();
 
       setApplications(data || []);
 

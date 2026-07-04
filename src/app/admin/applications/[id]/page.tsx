@@ -86,13 +86,9 @@ export default function ApplicationDetailPage({
 
   const fetchApplication = async () => {
     try {
-      const { data, error } = await supabase
-        .from("applications")
-        .select("*")
-        .eq("id", params.id)
-        .single();
-
-      if (error) throw error;
+      const response = await fetch(`/api/admin/applications/${params.id}`);
+      if (!response.ok) throw new Error("Failed to fetch application");
+      const data = await response.json();
 
       setApplication(data);
       setNotes(data.director_notes || "");
@@ -109,26 +105,34 @@ export default function ApplicationDetailPage({
     setUpdating(true);
 
     try {
-      // Update application status
-      const { error: updateError } = await supabase
-        .from("applications")
-        .update({
+      // Update application status via API
+      const response = await fetch(`/api/admin/applications/${application.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           status: newStatus,
           director_notes: notes,
           reviewed_at: new Date().toISOString(),
           reviewed_by: session?.user?.email,
-        })
-        .eq("id", application.id);
+        }),
+      });
 
-      if (updateError) throw updateError;
+      if (!response.ok) throw new Error("Failed to update application");
 
       // Add audit log entry
-      await supabase.from("application_audit_log").insert({
-        application_id: application.id,
-        old_status: application.status,
-        new_status: newStatus,
-        changed_by: session?.user?.email,
-        notes: notes,
+      await fetch("/api/notifications", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: "application_status_changed",
+          title: `Application ${newStatus}`,
+          message: `Application ${application.application_number} status changed to ${newStatus}`,
+          related_id: application.id,
+        }),
       });
 
       // Send email notification based on status
@@ -186,12 +190,16 @@ export default function ApplicationDetailPage({
       }
 
       if (emailSubject && emailBody) {
-        await resend.emails.send({
-          from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
+        const emailResult = await resend.emails.send({
+          from: "WISEDELL ACADEMY <noreply@wisedellacademy.co.zw>",
           to: application.parent_email,
           subject: emailSubject,
           html: emailBody,
         });
+
+        if (emailResult.error) {
+          console.error("Email send error:", emailResult.error);
+        }
       }
 
       // Refresh application data
