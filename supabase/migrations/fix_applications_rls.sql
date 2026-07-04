@@ -35,5 +35,9 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
+-- DROP existing policies before creating new ones
+DROP POLICY IF EXISTS "Authenticated users can read notifications" ON notifications;
+DROP POLICY IF EXISTS "System can create notifications" ON notifications;
+
 CREATE POLICY "Authenticated users can read notifications" ON notifications FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "System can create notifications" ON notifications FOR INSERT WITH CHECK (true);
