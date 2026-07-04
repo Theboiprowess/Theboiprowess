@@ -386,8 +386,15 @@ export async function POST(request: NextRequest) {
             </html>
           `,
         });
-        console.log("[ADMISSIONS] Confirmation email sent successfully:", emailResult);
-        emailSent = true;
+        
+        // Check if Resend returned an error in the response
+        if (emailResult.error) {
+          console.error("[ADMISSIONS] Resend returned error:", emailResult.error);
+          emailError = emailResult.error.message || String(emailResult.error);
+        } else {
+          console.log("[ADMISSIONS] Confirmation email sent successfully:", emailResult);
+          emailSent = true;
+        }
       } catch (emailError) {
         console.error("[ADMISSIONS] Error sending confirmation email:", emailError);
         emailError = emailError instanceof Error ? emailError.message : String(emailError);
@@ -404,7 +411,7 @@ export async function POST(request: NextRequest) {
       try {
         const adminDashboardUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/admin/applications`;
         
-        await resend.emails.send({
+        const directorEmailResult = await resend.emails.send({
           from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
           to: "wisedellacademy@gmail.com",
           subject: `New Application Received - ${applicationNumber}`,
@@ -426,7 +433,13 @@ export async function POST(request: NextRequest) {
             </div>
           `,
         });
-        console.log("[ADMISSIONS] Director notification email sent successfully");
+        
+        // Check if Resend returned an error in the response
+        if (directorEmailResult.error) {
+          console.error("[ADMISSIONS] Director email returned error:", directorEmailResult.error);
+        } else {
+          console.log("[ADMISSIONS] Director notification email sent successfully");
+        }
       } catch (emailError) {
         console.error("[ADMISSIONS] Error sending director notification email:", emailError);
         // Don't fail the application if email fails
