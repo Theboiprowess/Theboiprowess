@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Footer with page numbers
-    const totalPages = doc.internal.getNumberOfPages();
+    const totalPages = doc.internal.pages.length - 1; // pages array includes dummy page at index 0
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
