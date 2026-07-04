@@ -245,36 +245,57 @@ export async function POST(request: NextRequest) {
 
     console.log("[ADMISSIONS] Application inserted successfully:", applicationNumber);
 
-    // Create notification for admins
+    // Create notification for admin dashboard
+    console.log("[ADMISSIONS] Creating notification for admin dashboard...");
     try {
-      await supabase.from("notifications").insert({
-        type: "new_application",
-        title: "New Application Received",
-        message: `${firstName} ${lastName} has applied for ${gradeApplying}. Application #${applicationNumber}`,
-        entity_type: "application",
-        entity_id: application.id,
-        is_read: false,
-      });
-    } catch (notificationError) {
-      console.error("[ADMISSIONS] Error creating notification:", notificationError);
+      // Get admin users (for now, we'll notify all authenticated users)
+      // In production, you'd have a specific admin role
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert({
+          type: "application_received",
+          title: "New Application Received",
+          message: `${firstName} ${lastName} has applied for ${gradeApplying}`,
+          entity_type: "application",
+          entity_id: application.id,
+          is_read: false,
+        });
+
+      if (notificationError) {
+        console.error("[ADMISSIONS] Error creating notification:", notificationError);
+        // Don't fail the application if notification fails
+      } else {
+        console.log("[ADMISSIONS] Notification created successfully");
+      }
+    } catch (notifError) {
+      console.error("[ADMISSIONS] Error creating notification:", notifError);
       // Don't fail the application if notification fails
     }
 
-    // Log activity
+    // Create activity log
+    console.log("[ADMISSIONS] Creating activity log...");
     try {
-      await supabase.from("activity_logs").insert({
-        action: "application_submitted",
-        entity_type: "application",
-        entity_id: application.id,
-        details: {
-          application_number: applicationNumber,
-          student_name: `${firstName} ${lastName}`,
-          grade_applying: gradeApplying,
-        },
-      });
+      const { error: activityError } = await supabase
+        .from("activity_logs")
+        .insert({
+          action: "application_submitted",
+          entity_type: "application",
+          entity_id: application.id,
+          details: {
+            application_number: applicationNumber,
+            student_name: `${firstName} ${lastName}`,
+            grade_applying: gradeApplying,
+            parent_email: parentEmail,
+          },
+        });
+
+      if (activityError) {
+        console.error("[ADMISSIONS] Error creating activity log:", activityError);
+      } else {
+        console.log("[ADMISSIONS] Activity log created successfully");
+      }
     } catch (activityError) {
-      console.error("[ADMISSIONS] Error logging activity:", activityError);
-      // Don't fail the application if activity log fails
+      console.error("[ADMISSIONS] Error creating activity log:", activityError);
     }
 
     // Send confirmation email to applicant

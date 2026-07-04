@@ -4,18 +4,38 @@ import { motion } from "framer-motion";
 import { 
   Users, FileText, Calendar, Image, Download, Settings, TrendingUp,
   Plus, Bell, Upload, UserPlus, BookOpen, Phone, Mail, Newspaper,
-  Edit, Database, Shield, BarChart3, LogOut
+  Edit, Database, Shield, BarChart3, LogOut, Clock, CheckCircle, XCircle,
+  AlertCircle, Activity
 } from "lucide-react";
 import Link from "next/link";
 import { getCurrentYear, getNextAcademicYear, getCurrentAcademicSession } from "@/lib/date-utils";
 import { useEffect, useState } from "react";
 
 interface DashboardStats {
-  totalStudents: number;
-  totalApplications: number;
-  pendingApplications: number;
-  upcomingEvents: number;
-  galleryItems: number;
+  studentCount: number;
+  teacherCount: number;
+  applicationCount: number;
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  applicationsToday: number;
+  applicationsWeek: number;
+  applicationsMonth: number;
+  newsCount: number;
+  eventsCount: number;
+  galleryCount: number;
+  unreadNotifications: number;
+  admissionRate: number;
+  recentActivities: any[];
+  recentApplications: any[];
+}
+
+interface StatCard {
+  title: string;
+  value: number;
+  change: string;
+  icon: any;
+  color: string;
 }
 
 const quickActions = [
@@ -165,12 +185,24 @@ export default function DashboardOverview() {
   const currentYear = getCurrentYear();
   const nextAcademicYear = getNextAcademicYear();
   const currentAcademicSession = getCurrentAcademicSession();
-  const [stats, setStats] = useState([
-    { title: "Total Students", value: "0", change: "0%", icon: Users, color: "bg-blue-500" },
-    { title: "Applications", value: "0", change: "0%", icon: FileText, color: "bg-green-500" },
-    { title: "Pending", value: "0", change: "0%", icon: FileText, color: "bg-yellow-500" },
-    { title: "Gallery Items", value: "0", change: "0%", icon: Image, color: "bg-orange-500" },
-  ]);
+  const [stats, setStats] = useState<DashboardStats>({
+    studentCount: 0,
+    teacherCount: 0,
+    applicationCount: 0,
+    pendingCount: 0,
+    approvedCount: 0,
+    rejectedCount: 0,
+    applicationsToday: 0,
+    applicationsWeek: 0,
+    applicationsMonth: 0,
+    newsCount: 0,
+    eventsCount: 0,
+    galleryCount: 0,
+    unreadNotifications: 0,
+    admissionRate: 0,
+    recentActivities: [],
+    recentApplications: [],
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -179,12 +211,7 @@ export default function DashboardOverview() {
         const response = await fetch('/api/analytics');
         if (response.ok) {
           const data = await response.json();
-          setStats([
-            { title: "Total Students", value: data.studentCount?.toString() || "0", change: "+0%", icon: Users, color: "bg-blue-500" },
-            { title: "Applications", value: data.applicationCount?.toString() || "0", change: "+0%", icon: FileText, color: "bg-green-500" },
-            { title: "Pending", value: data.pendingCount?.toString() || "0", change: "+0%", icon: FileText, color: "bg-yellow-500" },
-            { title: "Gallery Items", value: data.galleryCount?.toString() || "0", change: "+0%", icon: Image, color: "bg-orange-500" },
-          ]);
+          setStats(data);
         }
       } catch (error) {
         console.error("Failed to fetch stats:", error);
@@ -193,7 +220,21 @@ export default function DashboardOverview() {
       }
     }
     fetchStats();
+    // Refresh every 30 seconds for real-time updates
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const statsCards: StatCard[] = [
+    { title: "Total Students", value: stats.studentCount, change: "Active", icon: Users, color: "bg-blue-500" },
+    { title: "Teachers", value: stats.teacherCount, change: "Active", icon: UserPlus, color: "bg-purple-500" },
+    { title: "Pending Applications", value: stats.pendingCount, change: "Needs Review", icon: FileText, color: "bg-yellow-500" },
+    { title: "Approved Applications", value: stats.approvedCount, change: "Accepted", icon: CheckCircle, color: "bg-green-500" },
+    { title: "Rejected Applications", value: stats.rejectedCount, change: "Declined", icon: XCircle, color: "bg-red-500" },
+    { title: "News Articles", value: stats.newsCount, change: "Published", icon: Newspaper, color: "bg-indigo-500" },
+    { title: "Upcoming Events", value: stats.eventsCount, change: "Scheduled", icon: Calendar, color: "bg-pink-500" },
+    { title: "Gallery Images", value: stats.galleryCount, change: "Uploaded", icon: Image, color: "bg-orange-500" },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -217,20 +258,19 @@ export default function DashboardOverview() {
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
         >
-          {stats.map((stat, index) => (
+          {statsCards.map((stat, index) => (
             <motion.div
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.05 }}
               className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                   <stat.icon className="text-white" size={24} />
                 </div>
-                <div className="flex items-center gap-1 text-green-500 text-sm font-semibold">
-                  <TrendingUp size={16} />
+                <div className="flex items-center gap-1 text-gray-500 text-sm font-semibold">
                   <span>{stat.change}</span>
                 </div>
               </div>
@@ -238,6 +278,256 @@ export default function DashboardOverview() {
               <p className="text-3xl font-bold text-gray-900">{loading ? "..." : stat.value}</p>
             </motion.div>
           ))}
+        </motion.div>
+
+        {/* Application Analytics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+        >
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Clock className="text-blue-600" size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Applications Today</h3>
+                <p className="text-2xl font-bold text-blue-600">{loading ? "..." : stats.applicationsToday}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Calendar className="text-green-600" size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">This Week</h3>
+                <p className="text-2xl font-bold text-green-600">{loading ? "..." : stats.applicationsWeek}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="text-purple-600" size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">This Month</h3>
+                <p className="text-2xl font-bold text-purple-600">{loading ? "..." : stats.applicationsMonth}</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Admission Rate */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 shadow-lg mb-12 text-white"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg mb-1">Admission Rate</h3>
+              <p className="text-blue-100 text-sm">Percentage of approved applications</p>
+            </div>
+            <div className="text-right">
+              <p className="text-4xl font-bold">{loading ? "..." : stats.admissionRate}%</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Recent Applications */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-2xl shadow-lg mb-12"
+        >
+          <div className="p-6 border-b">
+            <h2 className="font-heading text-xl font-bold text-primary flex items-center gap-2">
+              <FileText size={24} />
+              Recent Applications
+            </h2>
+          </div>
+          <div className="p-6">
+            {stats.recentApplications.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No applications received yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {stats.recentApplications.map((app: any) => (
+                  <div key={app.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        app.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                        app.status === 'approved' ? 'bg-green-100 text-green-600' :
+                        app.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {app.status === 'pending' ? <Clock size={20} /> :
+                         app.status === 'approved' ? <CheckCircle size={20} /> :
+                         app.status === 'rejected' ? <XCircle size={20} /> :
+                         <AlertCircle size={20} />}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {app.student_first_name} {app.student_last_name}
+                        </p>
+                        <p className="text-sm text-gray-500">{app.application_number} • {app.grade_applying}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">
+                        {new Date(app.submitted_at).toLocaleDateString()}
+                      </p>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        app.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {app.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Recent Activity */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="bg-white rounded-2xl shadow-lg mb-12"
+        >
+          <div className="p-6 border-b">
+            <h2 className="font-heading text-xl font-bold text-primary flex items-center gap-2">
+              <Activity size={24} />
+              Recent Activity
+            </h2>
+          </div>
+          <div className="p-6">
+            {stats.recentActivities.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No recent activity.</p>
+            ) : (
+              <div className="space-y-4">
+                {stats.recentActivities.map((activity: any) => (
+                  <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Activity className="text-primary" size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{activity.action}</p>
+                      <p className="text-sm text-gray-500">
+                        {activity.entity_type} • {new Date(activity.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Recent Applications */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-2xl shadow-lg mb-12"
+        >
+          <div className="p-6 border-b">
+            <h2 className="font-heading text-xl font-bold text-primary flex items-center gap-2">
+              <FileText size={24} />
+              Recent Applications
+            </h2>
+          </div>
+          <div className="p-6">
+            {stats.recentApplications.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No applications received yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {stats.recentApplications.map((app: any) => (
+                  <div key={app.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        app.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                        app.status === 'approved' ? 'bg-green-100 text-green-600' :
+                        app.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {app.status === 'pending' ? <Clock size={20} /> :
+                         app.status === 'approved' ? <CheckCircle size={20} /> :
+                         app.status === 'rejected' ? <XCircle size={20} /> :
+                         <AlertCircle size={20} />}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {app.student_first_name} {app.student_last_name}
+                        </p>
+                        <p className="text-sm text-gray-500">{app.application_number} • {app.grade_applying}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">
+                        {new Date(app.submitted_at).toLocaleDateString()}
+                      </p>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        app.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {app.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Recent Activity */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="bg-white rounded-2xl shadow-lg mb-12"
+        >
+          <div className="p-6 border-b">
+            <h2 className="font-heading text-xl font-bold text-primary flex items-center gap-2">
+              <Activity size={24} />
+              Recent Activity
+            </h2>
+          </div>
+          <div className="p-6">
+            {stats.recentActivities.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No recent activity.</p>
+            ) : (
+              <div className="space-y-4">
+                {stats.recentActivities.map((activity: any) => (
+                  <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Activity className="text-primary" size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{activity.action}</p>
+                      <p className="text-sm text-gray-500">
+                        {activity.entity_type} • {new Date(activity.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Quick Actions */}
