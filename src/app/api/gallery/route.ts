@@ -7,7 +7,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const albumId = searchParams.get("album_id");
+    const album = searchParams.get("album");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -16,8 +16,8 @@ export async function GET(request: Request) {
       .select("*")
       .order("order_index", { ascending: true });
 
-    if (albumId) {
-      query = query.eq("album_id", albumId);
+    if (album) {
+      query = query.eq("album", album);
     }
 
     const { data, error } = await query;
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       .insert({
         ...body,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -55,6 +56,65 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(data, { status: 201 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, ...updateData } = body;
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data, error } = await supabase
+      .from("gallery")
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing id parameter" }, { status: 400 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { error } = await supabase
+      .from("gallery")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },
