@@ -20,9 +20,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const dynamic = 'force-dynamic';
 
@@ -70,8 +70,6 @@ export default function ApplicationDetailPage({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
   );
 
-  const resend = new Resend(process.env.RESEND_API_KEY || "");
-
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/admin/login");
@@ -87,13 +85,23 @@ export default function ApplicationDetailPage({
   const fetchApplication = async () => {
     try {
       const response = await fetch(`/api/admin/applications/${params.id}`);
-      if (!response.ok) throw new Error("Failed to fetch application");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch application");
+      }
       const data = await response.json();
+
+      if (!data) {
+        console.error("No application data received");
+        setApplication(null);
+        return;
+      }
 
       setApplication(data);
       setNotes(data.director_notes || "");
     } catch (error) {
       console.error("Error fetching application:", error);
+      setApplication(null);
     } finally {
       setLoading(false);
     }
@@ -190,15 +198,21 @@ export default function ApplicationDetailPage({
       }
 
       if (emailSubject && emailBody) {
-        const emailResult = await resend.emails.send({
-          from: "WISEDELL ACADEMY <noreply@wisedellacademy.co.zw>",
-          to: application.parent_email,
-          subject: emailSubject,
-          html: emailBody,
-        });
+        const resendApiKey = process.env.RESEND_API_KEY;
+        if (resendApiKey) {
+          const resend = new Resend(resendApiKey);
+          const emailResult = await resend.emails.send({
+            from: "WISEDELL ACADEMY <noreply@wisedellacademy.co.zw>",
+            to: application.parent_email,
+            subject: emailSubject,
+            html: emailBody,
+          });
 
-        if (emailResult.error) {
-          console.error("Email send error:", emailResult.error);
+          if (emailResult.error) {
+            console.error("Email send error:", emailResult.error);
+          }
+        } else {
+          console.error("Resend API key not configured");
         }
       }
 
@@ -394,7 +408,8 @@ export default function ApplicationDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
@@ -724,5 +739,6 @@ export default function ApplicationDetailPage({
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
