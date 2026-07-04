@@ -186,7 +186,7 @@ export default function GalleryPage() {
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">All Albums</option>
-                {albums.map(album => (
+                {albums.filter(album => album !== null).map(album => (
                   <option key={album} value={album}>{album}</option>
                 ))}
               </select>

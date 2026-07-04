@@ -196,7 +196,7 @@ export default function StaffPage() {
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="all">All Departments</option>
-                {departments.map(dept => (
+                {departments.filter(dept => dept !== null).map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
