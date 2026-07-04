@@ -202,6 +202,28 @@ export default function ApplicationDetailPage({
         }
       }
 
+      // Log activity
+      try {
+        await fetch("/api/activity-logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: `application_${newStatus}`,
+            entity_type: "application",
+            entity_id: application.id,
+            user_email: session?.user?.email,
+            details: {
+              application_number: application.application_number,
+              old_status: application.status,
+              new_status: newStatus,
+              notes: notes,
+            },
+          }),
+        });
+      } catch (logError) {
+        console.error("Error logging activity:", logError);
+      }
+
       // Refresh application data
       await fetchApplication();
     } catch (error) {

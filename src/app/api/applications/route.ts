@@ -447,6 +447,29 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[ADMISSIONS] Application submission completed successfully:", applicationNumber);
+
+    // Log activity
+    try {
+      await fetch("/api/activity-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "application_submitted",
+          entity_type: "application",
+          entity_id: application.id,
+          user_email: parentEmail,
+          details: {
+            application_number: applicationNumber,
+            student_name: `${firstName} ${lastName}`,
+            grade_applying: gradeApplying,
+            email_sent: emailSent,
+          },
+        }),
+      });
+    } catch (logError) {
+      console.error("[ADMISSIONS] Error logging activity:", logError);
+    }
+
     return NextResponse.json({
       success: true,
       applicationNumber,

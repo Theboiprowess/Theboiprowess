@@ -105,6 +105,24 @@ export default function GalleryPage() {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete image");
+      
+      // Log activity
+      try {
+        await fetch("/api/activity-logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "gallery_image_deleted",
+            entity_type: "gallery",
+            entity_id: id,
+            user_email: "admin@wisedellacademy.co.zw",
+            details: {},
+          }),
+        });
+      } catch (logError) {
+        console.error("Error logging activity:", logError);
+      }
+      
       await fetchGallery();
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -228,6 +246,7 @@ export default function GalleryPage() {
 
       setUploadProgress(80);
 
+      let savedItem;
       if (editingItem) {
         const response = await fetch("/api/gallery", {
           method: "PUT",
@@ -235,6 +254,7 @@ export default function GalleryPage() {
           body: JSON.stringify({ id: editingItem.id, ...itemData }),
         });
         if (!response.ok) throw new Error("Failed to update image");
+        savedItem = await response.json();
       } else {
         const response = await fetch("/api/gallery", {
           method: "POST",
@@ -242,6 +262,28 @@ export default function GalleryPage() {
           body: JSON.stringify(itemData),
         });
         if (!response.ok) throw new Error("Failed to create image");
+        savedItem = await response.json();
+      }
+
+      // Log activity
+      try {
+        await fetch("/api/activity-logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: editingItem ? "gallery_image_updated" : "gallery_image_uploaded",
+            entity_type: "gallery",
+            entity_id: savedItem.id,
+            user_email: "admin@wisedellacademy.co.zw",
+            details: {
+              title: formData.title,
+              album: formData.album,
+              category: formData.category,
+            },
+          }),
+        });
+      } catch (logError) {
+        console.error("Error logging activity:", logError);
       }
 
       setUploadProgress(100);
