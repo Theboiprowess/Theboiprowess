@@ -6,27 +6,20 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const albumId = searchParams.get("album_id");
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let query = supabase
-      .from("gallery")
+    const { data, error } = await supabase
+      .from("admissions_settings")
       .select("*")
-      .order("order_index", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
-    if (albumId) {
-      query = query.eq("album_id", albumId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
+    if (error && error.code !== "PGRST116") {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data || null);
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },
@@ -42,10 +35,11 @@ export async function POST(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabase
-      .from("gallery")
+      .from("admissions_settings")
       .insert({
         ...body,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -56,10 +50,10 @@ export async function POST(request: Request) {
 
     // Log activity
     await supabase.from("activity_logs").insert({
-      action: "gallery_image_uploaded",
-      entity_type: "gallery",
+      action: "admissions_settings_created",
+      entity_type: "admissions_settings",
       entity_id: data.id,
-      details: { title: data.title },
+      details: { academic_year: data.academic_year },
     });
 
     return NextResponse.json(data, { status: 201 });
@@ -80,14 +74,17 @@ export async function PUT(request: Request) {
 
     // Get old data for audit log
     const { data: oldData } = await supabase
-      .from("gallery")
+      .from("admissions_settings")
       .select("*")
       .eq("id", id)
       .single();
 
     const { data, error } = await supabase
-      .from("gallery")
-      .update(updateData)
+      .from("admissions_settings")
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select()
       .single();
@@ -98,15 +95,15 @@ export async function PUT(request: Request) {
 
     // Log activity
     await supabase.from("activity_logs").insert({
-      action: "gallery_image_updated",
-      entity_type: "gallery",
+      action: "admissions_settings_updated",
+      entity_type: "admissions_settings",
       entity_id: data.id,
-      details: { title: data.title },
+      details: { academic_year: data.academic_year },
     });
 
     // Log audit
     await supabase.from("audit_logs").insert({
-      table_name: "gallery",
+      table_name: "admissions_settings",
       record_id: data.id,
       action: "UPDATE",
       old_value: oldData,
@@ -114,55 +111,6 @@ export async function PUT(request: Request) {
     });
 
     return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get old data for audit log
-    const { data: oldData } = await supabase
-      .from("gallery")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    const { error } = await supabase
-      .from("gallery")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // Log activity
-    await supabase.from("activity_logs").insert({
-      action: "gallery_image_deleted",
-      entity_type: "gallery",
-      entity_id: id,
-      details: { title: oldData ? oldData.title : "Unknown" },
-    });
-
-    // Log audit
-    await supabase.from("audit_logs").insert({
-      table_name: "gallery",
-      record_id: id,
-      action: "DELETE",
-      old_value: oldData,
-      new_value: null,
-    });
-
-    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },

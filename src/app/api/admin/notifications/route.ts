@@ -7,17 +7,22 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const albumId = searchParams.get("album_id");
+    const userId = searchParams.get("user_id");
+    const unreadOnly = searchParams.get("unread_only") === "true";
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     let query = supabase
-      .from("gallery")
+      .from("notifications")
       .select("*")
-      .order("order_index", { ascending: true });
+      .order("created_at", { ascending: false });
 
-    if (albumId) {
-      query = query.eq("album_id", albumId);
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+
+    if (unreadOnly) {
+      query = query.eq("is_read", false);
     }
 
     const { data, error } = await query;
@@ -42,7 +47,7 @@ export async function POST(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabase
-      .from("gallery")
+      .from("notifications")
       .insert({
         ...body,
         created_at: new Date().toISOString(),
@@ -53,14 +58,6 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    // Log activity
-    await supabase.from("activity_logs").insert({
-      action: "gallery_image_uploaded",
-      entity_type: "gallery",
-      entity_id: data.id,
-      details: { title: data.title },
-    });
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
@@ -78,16 +75,12 @@ export async function PUT(request: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get old data for audit log
-    const { data: oldData } = await supabase
-      .from("gallery")
-      .select("*")
-      .eq("id", id)
-      .single();
-
     const { data, error } = await supabase
-      .from("gallery")
-      .update(updateData)
+      .from("notifications")
+      .update({
+        ...updateData,
+        read_at: updateData.is_read ? new Date().toISOString() : null,
+      })
       .eq("id", id)
       .select()
       .single();
@@ -95,23 +88,6 @@ export async function PUT(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    // Log activity
-    await supabase.from("activity_logs").insert({
-      action: "gallery_image_updated",
-      entity_type: "gallery",
-      entity_id: data.id,
-      details: { title: data.title },
-    });
-
-    // Log audit
-    await supabase.from("audit_logs").insert({
-      table_name: "gallery",
-      record_id: data.id,
-      action: "UPDATE",
-      old_value: oldData,
-      new_value: data,
-    });
 
     return NextResponse.json(data);
   } catch (error) {
@@ -122,47 +98,31 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function PATCH(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const body = await request.json();
+    const { user_id, mark_all_read } = body;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get old data for audit log
-    const { data: oldData } = await supabase
-      .from("gallery")
-      .select("*")
-      .eq("id", id)
-      .single();
+    if (mark_all_read && user_id) {
+      const { error } = await supabase
+        .from("notifications")
+        .update({
+          is_read: true,
+          read_at: new Date().toISOString(),
+        })
+        .eq("user_id", user_id)
+        .eq("is_read", false);
 
-    const { error } = await supabase
-      .from("gallery")
-      .delete()
-      .eq("id", id);
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ success: true });
     }
 
-    // Log activity
-    await supabase.from("activity_logs").insert({
-      action: "gallery_image_deleted",
-      entity_type: "gallery",
-      entity_id: id,
-      details: { title: oldData ? oldData.title : "Unknown" },
-    });
-
-    // Log audit
-    await supabase.from("audit_logs").insert({
-      table_name: "gallery",
-      record_id: id,
-      action: "DELETE",
-      old_value: oldData,
-      new_value: null,
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },

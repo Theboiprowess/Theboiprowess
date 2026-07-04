@@ -245,6 +245,38 @@ export async function POST(request: NextRequest) {
 
     console.log("[ADMISSIONS] Application inserted successfully:", applicationNumber);
 
+    // Create notification for admins
+    try {
+      await supabase.from("notifications").insert({
+        type: "new_application",
+        title: "New Application Received",
+        message: `${firstName} ${lastName} has applied for ${gradeApplying}. Application #${applicationNumber}`,
+        entity_type: "application",
+        entity_id: application.id,
+        is_read: false,
+      });
+    } catch (notificationError) {
+      console.error("[ADMISSIONS] Error creating notification:", notificationError);
+      // Don't fail the application if notification fails
+    }
+
+    // Log activity
+    try {
+      await supabase.from("activity_logs").insert({
+        action: "application_submitted",
+        entity_type: "application",
+        entity_id: application.id,
+        details: {
+          application_number: applicationNumber,
+          student_name: `${firstName} ${lastName}`,
+          grade_applying: gradeApplying,
+        },
+      });
+    } catch (activityError) {
+      console.error("[ADMISSIONS] Error logging activity:", activityError);
+      // Don't fail the application if activity log fails
+    }
+
     // Send confirmation email to applicant
     if (resend) {
       console.log("[ADMISSIONS] Sending confirmation email to applicant...");
@@ -252,19 +284,76 @@ export async function POST(request: NextRequest) {
         await resend.emails.send({
           from: "WISEDELL ACADEMY <noreply@wisedellcollege.run.place>",
           to: parentEmail,
-          subject: "Application Received - WISEDELL ACADEMY",
+          subject: "Application Received – Wisedell Academy",
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #1e40af;">Application Received</h1>
-              <p>Dear ${parentName},</p>
-              <p>Thank you for submitting an application to WISEDELL ACADEMY on behalf of ${firstName} ${lastName}.</p>
-              <p><strong>Application Number:</strong> ${applicationNumber}</p>
-              <p><strong>Academic Year:</strong> ${nextAcademicYear}</p>
-              <p><strong>Grade Applied For:</strong> ${gradeApplying}</p>
-              <p>Your application has been received and is currently being reviewed. We will contact you shortly regarding the next steps.</p>
-              <p>If you have any questions, please contact us at wisedellacademy@gmail.com or call +263 77 802 2980.</p>
-              <p>Best regards,<br>WISEDELL ACADEMY Administration</p>
-            </div>
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Application Received – Wisedell Academy</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                  <h1 style="color: #1e40af; margin: 0;">WISEDELL ACADEMY</h1>
+                  <p style="color: #666; margin: 5px 0 0;">Empowering Future Leaders Through Academic Excellence</p>
+                </div>
+                
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                  <h2 style="color: #1e40af; margin: 0 0 15px;">Application Received</h2>
+                  <p style="color: #333; line-height: 1.6; margin: 0;">Dear ${parentName},</p>
+                  <p style="color: #333; line-height: 1.6; margin: 15px 0;">Thank you for applying to Wisedell Academy on behalf of ${firstName} ${lastName}.</p>
+                  <p style="color: #333; line-height: 1.6; margin: 15px 0;">We have successfully received your application.</p>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                  <h3 style="color: #1e40af; margin: 0 0 15px;">Application Details</h3>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr style="background-color: #f8f9fa;">
+                      <td style="padding: 12px; font-weight: bold; color: #333;">Application Number:</td>
+                      <td style="padding: 12px; color: #333;">${applicationNumber}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 12px; font-weight: bold; color: #333;">Student Name:</td>
+                      <td style="padding: 12px; color: #333;">${firstName} ${lastName}</td>
+                    </tr>
+                    <tr style="background-color: #f8f9fa;">
+                      <td style="padding: 12px; font-weight: bold; color: #333;">Grade Applied For:</td>
+                      <td style="padding: 12px; color: #333;">${gradeApplying}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 12px; font-weight: bold; color: #333;">Academic Year:</td>
+                      <td style="padding: 12px; color: #333;">${nextAcademicYear}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 30px;">
+                  <h3 style="color: #856404; margin: 0 0 10px;">Application Status</h3>
+                  <p style="color: #856404; margin: 0; font-weight: bold;">Pending Review</p>
+                  <p style="color: #856404; margin: 10px 0 0; line-height: 1.6;">Our admissions team will review your application and contact you if additional information is required.</p>
+                </div>
+
+                <p style="color: #333; line-height: 1.6; margin: 15px 0;">You will receive another email once your application has been reviewed.</p>
+                <p style="color: #333; line-height: 1.6; margin: 15px 0;">If you have any questions, please contact us.</p>
+
+                <div style="background-color: #1e40af; color: white; padding: 20px; margin-top: 30px; border-radius: 8px;">
+                  <h3 style="margin: 0 0 10px;">Contact Information</h3>
+                  <p style="margin: 5px 0;">Email: wisedellacademy@gmail.com</p>
+                  <p style="margin: 5px 0;">Phone: +263 77 802 2980</p>
+                  <p style="margin: 5px 0;">Address: 3210 Jongwe Street, Pangolin, Masvingo, Zimbabwe</p>
+                </div>
+
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 12px;">
+                  <p style="margin: 5px 0;">Thank you for choosing Wisedell Academy.</p>
+                  <p style="margin: 5px 0;">Kind regards,</p>
+                  <p style="margin: 5px 0; font-weight: bold;">Admissions Office</p>
+                  <p style="margin: 5px 0;">Wisedell Academy</p>
+                </div>
+              </div>
+            </body>
+            </html>
           `,
         });
         console.log("[ADMISSIONS] Confirmation email sent successfully");

@@ -8,37 +8,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getCurrentYear, getNextAcademicYear, getCurrentAcademicSession } from "@/lib/date-utils";
+import { useEffect, useState } from "react";
 
-const stats = [
-  {
-    title: "Total Students",
-    value: "524",
-    change: "+12%",
-    icon: Users,
-    color: "bg-blue-500",
-  },
-  {
-    title: "Applications",
-    value: "45",
-    change: "+8%",
-    icon: FileText,
-    color: "bg-green-500",
-  },
-  {
-    title: "Upcoming Events",
-    value: "8",
-    change: "+2",
-    icon: Calendar,
-    color: "bg-purple-500",
-  },
-  {
-    title: "Gallery Items",
-    value: "156",
-    change: "+24",
-    icon: Image,
-    color: "bg-orange-500",
-  },
-];
+interface DashboardStats {
+  totalStudents: number;
+  totalApplications: number;
+  pendingApplications: number;
+  upcomingEvents: number;
+  galleryItems: number;
+}
 
 const quickActions = [
   {
@@ -187,6 +165,35 @@ export default function DashboardOverview() {
   const currentYear = getCurrentYear();
   const nextAcademicYear = getNextAcademicYear();
   const currentAcademicSession = getCurrentAcademicSession();
+  const [stats, setStats] = useState([
+    { title: "Total Students", value: "0", change: "0%", icon: Users, color: "bg-blue-500" },
+    { title: "Applications", value: "0", change: "0%", icon: FileText, color: "bg-green-500" },
+    { title: "Pending", value: "0", change: "0%", icon: FileText, color: "bg-yellow-500" },
+    { title: "Gallery Items", value: "0", change: "0%", icon: Image, color: "bg-orange-500" },
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/analytics');
+        if (response.ok) {
+          const data = await response.json();
+          setStats([
+            { title: "Total Students", value: data.studentCount?.toString() || "0", change: "+0%", icon: Users, color: "bg-blue-500" },
+            { title: "Applications", value: data.applicationCount?.toString() || "0", change: "+0%", icon: FileText, color: "bg-green-500" },
+            { title: "Pending", value: data.pendingCount?.toString() || "0", change: "+0%", icon: FileText, color: "bg-yellow-500" },
+            { title: "Gallery Items", value: data.galleryCount?.toString() || "0", change: "+0%", icon: Image, color: "bg-orange-500" },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -228,7 +235,7 @@ export default function DashboardOverview() {
                 </div>
               </div>
               <h3 className="text-gray-600 text-sm font-medium mb-1">{stat.title}</h3>
-              <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-3xl font-bold text-gray-900">{loading ? "..." : stat.value}</p>
             </motion.div>
           ))}
         </motion.div>

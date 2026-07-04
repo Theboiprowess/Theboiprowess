@@ -66,7 +66,12 @@ export async function GET(request: Request) {
       .eq("published", true)
       .eq("is_completed", false);
 
-    if (appsError || logsError || studentError || teacherError || newsError || eventsError) {
+    // Count gallery items
+    const { count: galleryCount, error: galleryError } = await supabase
+      .from("gallery")
+      .select("*", { count: "exact", head: true });
+
+    if (appsError || logsError || studentError || teacherError || newsError || eventsError || galleryError) {
       return NextResponse.json({ error: "Error fetching analytics data" }, { status: 500 });
     }
 
@@ -92,7 +97,12 @@ export async function GET(request: Request) {
         activeTeachers: teacherCount || 0,
         publishedNews: newsCount || 0,
         upcomingEvents: eventsCount || 0,
+        galleryCount: galleryCount || 0,
       },
+      studentCount: studentCount || 0,
+      applicationCount: applicationStats.total,
+      pendingCount: applicationStats.pending,
+      galleryCount: galleryCount || 0,
     });
   } catch (error) {
     return NextResponse.json(
