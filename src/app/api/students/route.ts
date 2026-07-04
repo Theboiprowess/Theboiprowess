@@ -9,7 +9,7 @@ export async function GET() {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabase
-      .from("teachers")
+      .from("students")
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabase
-      .from("teachers")
+      .from("students")
       .insert({
         ...body,
         created_at: new Date().toISOString(),
@@ -63,7 +63,7 @@ export async function PUT(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabase
-      .from("teachers")
+      .from("students")
       .update({
         ...updateData,
         updated_at: new Date().toISOString(),
@@ -97,7 +97,7 @@ export async function DELETE(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { error } = await supabase
-      .from("teachers")
+      .from("students")
       .delete()
       .eq("id", id);
 

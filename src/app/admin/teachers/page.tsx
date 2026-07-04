@@ -109,12 +109,11 @@ export default function TeachersPage() {
     if (!confirm("Are you sure you want to delete this teacher?")) return;
 
     try {
-      const { error } = await supabase
-        .from("teachers")
-        .delete()
-        .eq("id", id);
+      const response = await fetch(`/api/teachers?id=${id}`, {
+        method: "DELETE",
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to delete teacher");
       await fetchTeachers();
     } catch (error) {
       console.error("Error deleting teacher:", error);
@@ -125,12 +124,13 @@ export default function TeachersPage() {
   const handleToggleStatus = async (teacher: Teacher) => {
     const newStatus = teacher.status === "active" ? "inactive" : "active";
     try {
-      const { error } = await supabase
-        .from("teachers")
-        .update({ status: newStatus })
-        .eq("id", teacher.id);
+      const response = await fetch("/api/teachers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: teacher.id, status: newStatus }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to update teacher status");
       await fetchTeachers();
     } catch (error) {
       console.error("Error updating teacher status:", error);
@@ -156,18 +156,21 @@ export default function TeachersPage() {
       };
 
       if (editingTeacher) {
-        const { error } = await supabase
-          .from("teachers")
-          .update(teacherData)
-          .eq("id", editingTeacher.id);
+        const response = await fetch("/api/teachers", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingTeacher.id, ...teacherData }),
+        });
 
-        if (error) throw error;
+        if (!response.ok) throw new Error("Failed to update teacher");
       } else {
-        const { error } = await supabase
-          .from("teachers")
-          .insert(teacherData);
+        const response = await fetch("/api/teachers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(teacherData),
+        });
 
-        if (error) throw error;
+        if (!response.ok) throw new Error("Failed to create teacher");
       }
 
       setShowModal(false);

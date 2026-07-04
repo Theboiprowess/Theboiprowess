@@ -120,8 +120,10 @@ export default function StudentsPage() {
   const handleDeleteStudent = async (id: string) => {
     if (!confirm("Are you sure you want to delete this student?")) return;
     try {
-      const { error } = await supabase.from("students").delete().eq("id", id);
-      if (error) throw error;
+      const response = await fetch(`/api/students?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete student");
       await fetchStudents();
     } catch (error) {
       console.error("Error deleting student:", error);
@@ -132,8 +134,12 @@ export default function StudentsPage() {
   const handleToggleStatus = async (student: Student) => {
     const newStatus = student.status === "active" ? "inactive" : "active";
     try {
-      const { error } = await supabase.from("students").update({ status: newStatus }).eq("id", student.id);
-      if (error) throw error;
+      const response = await fetch("/api/students", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: student.id, status: newStatus }),
+      });
+      if (!response.ok) throw new Error("Failed to update student status");
       await fetchStudents();
     } catch (error) {
       console.error("Error updating student status:", error);
@@ -161,11 +167,19 @@ export default function StudentsPage() {
       };
 
       if (editingStudent) {
-        const { error } = await supabase.from("students").update(studentData).eq("id", editingStudent.id);
-        if (error) throw error;
+        const response = await fetch("/api/students", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingStudent.id, ...studentData }),
+        });
+        if (!response.ok) throw new Error("Failed to update student");
       } else {
-        const { error } = await supabase.from("students").insert(studentData);
-        if (error) throw error;
+        const response = await fetch("/api/students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(studentData),
+        });
+        if (!response.ok) throw new Error("Failed to create student");
       }
 
       setShowModal(false);
