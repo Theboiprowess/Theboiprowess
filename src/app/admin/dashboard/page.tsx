@@ -15,6 +15,8 @@ import {
   Filter,
   Download,
   LogOut,
+  Calendar,
+  GraduationCap,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
@@ -45,6 +47,12 @@ export default function AdminDashboard() {
     approved: 0,
     rejected: 0,
     thisMonth: 0,
+    today: 0,
+    students: 0,
+    teachers: 0,
+    news: 0,
+    events: 0,
+    gallery: 0,
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +69,7 @@ export default function AdminDashboard() {
 
       // Calculate statistics
       const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const thisMonth = data?.filter((app: Application) => {
         const appDate = new Date(app.submitted_at);
         return (
@@ -69,12 +78,38 @@ export default function AdminDashboard() {
         );
       }).length || 0;
 
+      const todayCount = data?.filter((app: Application) => {
+        const appDate = new Date(app.submitted_at);
+        return appDate >= today;
+      }).length || 0;
+
+      // Fetch other statistics
+      const [studentsRes, teachersRes, newsRes, eventsRes, galleryRes] = await Promise.all([
+        fetch("/api/students"),
+        fetch("/api/teachers"),
+        fetch("/api/news"),
+        fetch("/api/events"),
+        fetch("/api/gallery"),
+      ]);
+
+      const students = studentsRes.ok ? await studentsRes.json() : [];
+      const teachers = teachersRes.ok ? await teachersRes.json() : [];
+      const news = newsRes.ok ? await newsRes.json() : [];
+      const events = eventsRes.ok ? await eventsRes.json() : [];
+      const gallery = galleryRes.ok ? await galleryRes.json() : [];
+
       setStats({
         total: data?.length || 0,
         pending: data?.filter((app: Application) => app.status === "pending").length || 0,
         approved: data?.filter((app: Application) => app.status === "approved").length || 0,
         rejected: data?.filter((app: Application) => app.status === "rejected").length || 0,
         thisMonth,
+        today: todayCount,
+        students: Array.isArray(students) ? students.length : 0,
+        teachers: Array.isArray(teachers) ? teachers.length : 0,
+        news: Array.isArray(news) ? news.length : 0,
+        events: Array.isArray(events) ? events.length : 0,
+        gallery: Array.isArray(gallery) ? gallery.length : 0,
       });
     } catch (error) {
       console.error("Error fetching applications:", error);
@@ -179,7 +214,7 @@ export default function AdminDashboard() {
 
       <div className="container mx-auto px-4 py-8">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -260,6 +295,91 @@ export default function AdminDashboard() {
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <TrendingUp className="text-blue-600" size={24} />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-xl shadow-sm p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Today</p>
+                <p className="text-3xl font-bold text-purple-600">{stats.today}</p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <Calendar className="text-purple-600" size={24} />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-white rounded-xl shadow-sm p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Students</p>
+                <p className="text-3xl font-bold text-indigo-600">{stats.students}</p>
+              </div>
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                <Users className="text-indigo-600" size={24} />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            className="bg-white rounded-xl shadow-sm p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Teachers</p>
+                <p className="text-3xl font-bold text-teal-600">{stats.teachers}</p>
+              </div>
+              <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                <GraduationCap className="text-teal-600" size={24} />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="bg-white rounded-xl shadow-sm p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">News</p>
+                <p className="text-3xl font-bold text-orange-600">{stats.news}</p>
+              </div>
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <FileText className="text-orange-600" size={24} />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            className="bg-white rounded-xl shadow-sm p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Gallery</p>
+                <p className="text-3xl font-bold text-pink-600">{stats.gallery}</p>
+              </div>
+              <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
+                <Download className="text-pink-600" size={24} />
               </div>
             </div>
           </motion.div>
