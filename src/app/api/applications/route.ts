@@ -214,6 +214,9 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error("[ADMISSIONS] Database insert error:", insertError);
+      console.error("[ADMISSIONS] Error code:", insertError.code);
+      console.error("[ADMISSIONS] Error message:", insertError.message);
+      console.error("[ADMISSIONS] Error details:", insertError.details);
       
       // Provide specific error messages based on error type
       if (insertError.code === "23505") {
@@ -243,7 +246,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[ADMISSIONS] Application inserted successfully:", applicationNumber);
+    console.log("[ADMISSIONS] Application inserted successfully:", {
+      applicationNumber,
+      applicationId: application.id,
+      status: application.status
+    });
 
     // Create notification for admin dashboard
     console.log("[ADMISSIONS] Creating notification for admin dashboard...");
