@@ -86,6 +86,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'album') THEN
       ALTER TABLE gallery ADD COLUMN album VARCHAR(100);
     END IF;
+    -- Check and add featured column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'featured') THEN
+      ALTER TABLE gallery ADD COLUMN featured BOOLEAN DEFAULT FALSE;
+    END IF;
+    -- Check and add order_index column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'order_index') THEN
+      ALTER TABLE gallery ADD COLUMN order_index INTEGER DEFAULT 0;
+    END IF;
   END IF;
 END $$;
 
