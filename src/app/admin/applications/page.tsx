@@ -120,7 +120,7 @@ export default function ApplicationsPage() {
     });
 
     // Footer
-    const pageCount = doc.internal.getNumberOfPages();
+    const pageCount = doc.internal.pages.length - 1; // pages array includes dummy page at index 0
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
