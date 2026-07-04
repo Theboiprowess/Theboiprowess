@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -80,6 +81,7 @@ export default function ApplicationDetailPage({
     if (session && params.id) {
       fetchApplication();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, params.id]);
 
   const fetchApplication = async () => {
