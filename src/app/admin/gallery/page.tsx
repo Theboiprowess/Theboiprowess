@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Plus, Edit, Trash2, Search, Image as ImageIcon, Star, Folder, X, Upload
+  Plus, Edit, Trash2, Search, Image as ImageIcon, Star, Folder, X, Upload, Loader2
 } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,11 @@ export default function GalleryPage() {
   const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterAlbum, setFilterAlbum] = useState("all");
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -37,6 +43,11 @@ export default function GalleryPage() {
     featured: false,
     order_index: "0",
   });
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  );
 
   const fetchGallery = async () => {
     try {
@@ -66,6 +77,8 @@ export default function GalleryPage() {
       featured: false,
       order_index: "0",
     });
+    setSelectedFile(null);
+    setPreviewUrl(null);
     setShowModal(true);
   };
 
@@ -80,6 +93,8 @@ export default function GalleryPage() {
       featured: item.featured,
       order_index: item.order_index.toString(),
     });
+    setSelectedFile(null);
+    setPreviewUrl(item.image_url);
     setShowModal(true);
   };
 
@@ -115,13 +130,103 @@ export default function GalleryPage() {
     }
   };
 
+  const validateFile = (file: File): { valid: boolean; error?: string } => {
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    if (!validTypes.includes(file.type)) {
+      return { valid: false, error: 'Only PNG, JPG, JPEG, and WEBP files are allowed' };
+    }
+
+    if (file.size > maxSize) {
+      return { valid: false, error: 'File size must be less than 10MB' };
+    }
+
+    return { valid: true };
+  };
+
+  const handleFileSelect = (file: File) => {
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const uploadFile = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `gallery/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('gallery')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('gallery')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedFile && !formData.image_url) {
+      alert("Please select an image or provide an image URL");
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
     try {
+      let imageUrl = formData.image_url;
+
+      if (selectedFile) {
+        setUploadProgress(30);
+        imageUrl = await uploadFile(selectedFile);
+        setUploadProgress(70);
+      }
+
       const itemData = {
         ...formData,
+        image_url: imageUrl,
         order_index: parseInt(formData.order_index) || 0,
       };
+
+      setUploadProgress(80);
 
       if (editingItem) {
         const response = await fetch("/api/gallery", {
@@ -139,11 +244,17 @@ export default function GalleryPage() {
         if (!response.ok) throw new Error("Failed to create image");
       }
 
+      setUploadProgress(100);
       setShowModal(false);
+      setSelectedFile(null);
+      setPreviewUrl(null);
       await fetchGallery();
     } catch (error) {
       console.error("Error saving image:", error);
       alert("Failed to save image");
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -279,15 +390,73 @@ export default function GalleryPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* File Upload Area */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Image</label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Drag and drop an image here, or click to select
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, JPEG, WEBP (max 10MB)
+                    </p>
+                  </label>
+                </div>
+                
+                {previewUrl && (
+                  <div className="mt-4">
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewUrl(null);
+                      }}
+                      className="mt-2 text-sm text-red-600 hover:text-red-700"
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center" style={{ zIndex: 10 }}>
+                  <span className="text-sm text-gray-500">or</span>
+                </div>
+                <hr className="my-6" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
                 <input
                   type="url"
-                  required
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="https://example.com/image.jpg"
+                  disabled={!!selectedFile}
                 />
               </div>
               <div>
@@ -351,19 +520,39 @@ export default function GalleryPage() {
                   </label>
                 </div>
               </div>
+              
+              {uploading && (
+                <div className="bg-gray-100 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <div className="flex-1">
+                      <div className="h-2 bg-gray-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">Uploading... {uploadProgress}%</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={uploading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={uploading}
                 >
-                  {editingItem ? "Update" : "Create"}
+                  {uploading ? 'Uploading...' : (editingItem ? "Update" : "Create")}
                 </button>
               </div>
             </form>
