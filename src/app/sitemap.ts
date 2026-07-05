@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://wisedellacademy.vercel.app';
+const SITE_URL = 'https://wisedellacademy.co.zw';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
