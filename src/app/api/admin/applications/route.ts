@@ -25,6 +25,16 @@ export async function GET() {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log("[ADMIN] Supabase client created");
 
+    // First, try to get count without any filters
+    const { count: totalCount, error: countError } = await supabase
+      .from("applications")
+      .select("*", { count: "exact", head: true });
+
+    console.log("[ADMIN] Total applications in database:", totalCount);
+    if (countError) {
+      console.error("[ADMIN] Count error:", countError);
+    }
+
     const { data, error } = await supabase
       .from("applications")
       .select("*")
