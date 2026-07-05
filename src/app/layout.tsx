@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { generateMetadata as generateSEOMetadata, STRUCTURED_DATA, generateJsonLd } from "@/lib/seo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,33 +18,28 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "WISEDELL ACADEMY - Private Day Secondary School in Masvingo, Zimbabwe",
-  description: "WISEDELL ACADEMY is a premier private day secondary school in Masvingo, Zimbabwe. Empowering future leaders through academic excellence. With God We Work Hard and Shine.",
-  keywords: "WISEDELL ACADEMY, private school, Masvingo, Zimbabwe, secondary school, O Level, A Level, education",
-  authors: [{ name: "WISEDELL ACADEMY" }],
-  metadataBase: new URL('https://wisedellcollege.run.place'),
-  alternates: {
-    canonical: '/',
-  },
-  openGraph: {
-    title: "WISEDELL ACADEMY - Private Day Secondary School",
-    description: "Empowering Future Leaders Through Academic Excellence",
-    type: "website",
-    locale: "en_ZW",
-    url: 'https://wisedellcollege.run.place',
-    siteName: "WISEDELL ACADEMY",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "WISEDELL ACADEMY",
-    description: "Empowering Future Leaders Through Academic Excellence",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+export const metadata: Metadata = generateSEOMetadata({
+  title: "WISEDELL ACADEMY | Excellence in Education in Zimbabwe",
+  description: "WISEDELL ACADEMY is a premier private day secondary school in Masvingo, Zimbabwe. Offering O-Level and A-Level education with academic excellence, dedicated teachers, and a nurturing environment. Apply online today for admissions.",
+  keywords: [
+    "WISEDELL ACADEMY",
+    "private school",
+    "Masvingo",
+    "Zimbabwe",
+    "secondary school",
+    "O Level",
+    "A Level",
+    "education",
+    "academic excellence",
+    "admissions",
+    "apply online",
+    "boarding school",
+    "day school",
+    "high school",
+    "college",
+  ],
+  canonical: "/",
+});
 
 export default function RootLayout({
   children,
@@ -52,6 +48,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={generateJsonLd(STRUCTURED_DATA.organization)}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={generateJsonLd(STRUCTURED_DATA.website)}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={generateJsonLd(STRUCTURED_DATA.school)}
+        />
+      </head>
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
