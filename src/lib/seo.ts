@@ -9,7 +9,7 @@ export const SITE_CONFIG = {
   url: SITE_URL,
   customDomain: CUSTOM_DOMAIN,
   locale: 'en_ZW',
-  ogImage: '/logo.png',
+  ogImage: `${CUSTOM_DOMAIN}/logo.png`,
   twitterHandle: '@WisedellAcademy',
 };
 
