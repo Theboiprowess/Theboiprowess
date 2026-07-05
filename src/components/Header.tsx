@@ -75,10 +75,10 @@ export default function Header() {
           scrolled ? "bg-white shadow-lg" : "bg-white"
         )}
       >
-        <nav className="container mx-auto px-4">
+        <nav className="container mx-auto px-4" aria-label="Main navigation">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3" aria-label="WISEDELL ACADEMY Home">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden">
                 <Image src="/logo.png" alt="WISEDELL ACADEMY Logo" width={48} height={48} className="object-contain" />
               </div>
@@ -89,7 +89,7 @@ export default function Header() {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-1" role="menubar">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -100,6 +100,8 @@ export default function Header() {
                       ? "bg-primary text-white"
                       : "text-text hover:bg-primary/10 hover:text-primary"
                   )}
+                  role="menuitem"
+                  aria-current={pathname === item.href ? "page" : undefined}
                 >
                   {item.name}
                 </Link>
@@ -139,7 +141,7 @@ export default function Header() {
 
           {/* Mobile Navigation */}
           {isOpen && (
-            <div className="lg:hidden py-4 border-t">
+            <div className="lg:hidden py-4 border-t" role="menu">
               <div className="flex flex-col gap-2">
                 {navigation.map((item) => (
                   <Link
@@ -151,6 +153,8 @@ export default function Header() {
                         ? "bg-primary text-white"
                         : "text-text hover:bg-primary/10 hover:text-primary"
                     )}
+                    role="menuitem"
+                    aria-current={pathname === item.href ? "page" : undefined}
                   >
                     {item.name}
                   </Link>

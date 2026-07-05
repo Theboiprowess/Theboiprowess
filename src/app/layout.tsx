@@ -61,6 +61,10 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={generateJsonLd(STRUCTURED_DATA.school)}
         />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#1e40af" />
       </head>
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         <ThemeProvider
@@ -70,7 +74,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Header />
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen" role="main">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>
