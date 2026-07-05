@@ -112,9 +112,11 @@ export default function TeachersGrid() {
                   <Mail size={16} />
                   <span>{teacher.yearsOfExperience} years experience</span>
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {teacher.biography}
-                </p>
+                {teacher.name === "Mr. Shoshore" && (
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {teacher.biography}
+                  </p>
+                )}
               </div>
             </motion.div>
           ))}
