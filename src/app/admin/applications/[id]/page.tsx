@@ -115,6 +115,12 @@ export default function ApplicationDetailPage({
     setUpdating(true);
 
     try {
+      console.log("[ADMIN] Updating application status:", {
+        applicationId: application.id,
+        newStatus,
+        currentStatus: application.status
+      });
+
       // Update application status via API
       const response = await fetch(`/api/admin/applications/${application.id}`, {
         method: 'PUT',
@@ -129,21 +135,32 @@ export default function ApplicationDetailPage({
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to update application");
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("[ADMIN] API error response:", errorData);
+        throw new Error(errorData.error || errorData.message || "Failed to update application");
+      }
+
+      const updatedApplication = await response.json();
+      console.log("[ADMIN] Application updated successfully:", updatedApplication);
 
       // Add audit log entry
-      await fetch("/api/notifications", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: "application_status_changed",
-          title: `Application ${newStatus}`,
-          message: `Application ${application.application_number} status changed to ${newStatus}`,
-          related_id: application.id,
-        }),
-      });
+      try {
+        await fetch("/api/notifications", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: "application_status_changed",
+            title: `Application ${newStatus}`,
+            message: `Application ${application.application_number} status changed to ${newStatus}`,
+            related_id: application.id,
+          }),
+        });
+      } catch (notificationError) {
+        console.error("[ADMIN] Error creating notification:", notificationError);
+      }
 
       // Send email notification based on status
       let emailSubject = "";
@@ -202,19 +219,25 @@ export default function ApplicationDetailPage({
       if (emailSubject && emailBody) {
         const resendApiKey = process.env.RESEND_API_KEY;
         if (resendApiKey) {
-          const resend = new Resend(resendApiKey);
-          const emailResult = await resend.emails.send({
-            from: "WISEDELL ACADEMY <noreply@wisedellacademy.co.zw>",
-            to: application.parent_email,
-            subject: emailSubject,
-            html: emailBody,
-          });
+          try {
+            const resend = new Resend(resendApiKey);
+            const emailResult = await resend.emails.send({
+              from: "WISEDELL ACADEMY <noreply@wisedellacademy.co.zw>",
+              to: application.parent_email,
+              subject: emailSubject,
+              html: emailBody,
+            });
 
-          if (emailResult.error) {
-            console.error("Email send error:", emailResult.error);
+            if (emailResult.error) {
+              console.error("[ADMIN] Email send error:", emailResult.error);
+            } else {
+              console.log("[ADMIN] Email sent successfully:", emailResult.data);
+            }
+          } catch (emailError) {
+            console.error("[ADMIN] Email sending error:", emailError);
           }
         } else {
-          console.error("Resend API key not configured");
+          console.error("[ADMIN] Resend API key not configured");
         }
       }
 
@@ -237,14 +260,15 @@ export default function ApplicationDetailPage({
           }),
         });
       } catch (logError) {
-        console.error("Error logging activity:", logError);
+        console.error("[ADMIN] Error logging activity:", logError);
       }
 
       // Refresh application data
       await fetchApplication();
     } catch (error) {
-      console.error("Error updating status:", error);
-      alert("Failed to update status. Please try again.");
+      console.error("[ADMIN] Error updating status:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update status. Please try again.";
+      alert(`Error: ${errorMessage}`);
     } finally {
       setUpdating(false);
     }
