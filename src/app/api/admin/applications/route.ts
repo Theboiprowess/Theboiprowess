@@ -42,6 +42,7 @@ export async function GET() {
 
     console.log("[ADMIN] Successfully fetched applications:", {
       count: data?.length || 0,
+      statuses: data?.map((app: any) => ({ id: app.id, status: app.status, number: app.application_number })) || [],
     });
 
     return NextResponse.json(data || []);
