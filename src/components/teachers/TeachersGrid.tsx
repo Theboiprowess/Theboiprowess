@@ -107,7 +107,7 @@ export default function TeachersGrid() {
                     alt={teacher.name}
                     width={192}
                     height={192}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                 ) : (
                   <User className="text-white/50" size={80} />
