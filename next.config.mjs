@@ -27,6 +27,10 @@ const nextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on'
           },
+          {
+            key: 'Content-Security-Policy',
+            value: "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.io; default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:;"
+          },
         ],
       },
     ];
