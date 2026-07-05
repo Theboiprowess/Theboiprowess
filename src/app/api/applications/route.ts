@@ -134,7 +134,8 @@ export async function POST(request: NextRequest) {
     if (passportPhoto && passportPhoto.size > 0) {
       console.log("[ADMISSIONS] Uploading passport photo...");
       const passportPhotoExt = passportPhoto.name.split(".").pop();
-      const passportPhotoName = `${applicationNumber}-passport.${passportPhotoExt}`;
+      const timestamp = Date.now();
+      const passportPhotoName = `${applicationNumber}-passport-${timestamp}.${passportPhotoExt}`;
       
       const { data: passportUploadData, error: passportError } = await supabase.storage
         .from("application-documents")
@@ -158,7 +159,8 @@ export async function POST(request: NextRequest) {
     if (resultsUpload && resultsUpload.size > 0) {
       console.log("[ADMISSIONS] Uploading results document...");
       const resultsUploadExt = resultsUpload.name.split(".").pop();
-      const resultsUploadName = `${applicationNumber}-results.${resultsUploadExt}`;
+      const timestamp = Date.now();
+      const resultsUploadName = `${applicationNumber}-results-${timestamp}.${resultsUploadExt}`;
       
       const { data: resultsUploadData, error: resultsError } = await supabase.storage
         .from("application-documents")
