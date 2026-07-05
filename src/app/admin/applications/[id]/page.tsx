@@ -144,24 +144,6 @@ export default function ApplicationDetailPage({
       const updatedApplication = await response.json();
       console.log("[ADMIN] Application updated successfully:", updatedApplication);
 
-      // Add audit log entry
-      try {
-        await fetch("/api/notifications", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: "application_status_changed",
-            title: `Application ${newStatus}`,
-            message: `Application ${application.application_number} status changed to ${newStatus}`,
-            related_id: application.id,
-          }),
-        });
-      } catch (notificationError) {
-        console.error("[ADMIN] Error creating notification:", notificationError);
-      }
-
       // Send email notification based on status
       let emailSubject = "";
       let emailBody = "";
