@@ -11,6 +11,7 @@ DROP POLICY IF EXISTS "Public read access to students" ON applications;
 DROP POLICY IF EXISTS "Authenticated users can read applications" ON applications;
 DROP POLICY IF EXISTS "Authenticated users can update applications" ON applications;
 DROP POLICY IF EXISTS "Authenticated users can delete applications" ON applications;
+DROP POLICY IF EXISTS "Public read access to applications" ON applications;
 
 -- Allow anyone (anonymous users) to INSERT applications
 CREATE POLICY "Anyone can create applications" ON applications FOR INSERT WITH CHECK (true);
