@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   Plus, Edit, Trash2, Search, Image as ImageIcon, Star, Folder, X, Upload, Loader2
 } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
@@ -43,11 +42,6 @@ export default function GalleryPage() {
     featured: false,
     order_index: "0",
   });
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
 
   const fetchGallery = async () => {
     try {
@@ -198,24 +192,21 @@ export default function GalleryPage() {
   };
 
   const uploadFile = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `gallery/${fileName}`;
+    const formData = new FormData();
+    formData.append('file', file);
 
-    const { data, error } = await supabase.storage
-      .from('gallery')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    const response = await fetch('/api/gallery/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
-    if (error) throw error;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('gallery')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
+    const data = await response.json();
+    return data.url;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
