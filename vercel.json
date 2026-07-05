@@ -1,6 +1,11 @@
 {
   "redirects": [
     {
+      "source": "/googlea7d8e7ff5e3dcda2.html",
+      "destination": "/googlea7d8e7ff5e3dcda2.html",
+      "permanent": false
+    },
+    {
       "source": "/",
       "has": [
         {
