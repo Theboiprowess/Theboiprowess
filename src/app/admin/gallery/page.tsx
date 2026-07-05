@@ -98,7 +98,10 @@ export default function GalleryPage() {
       const response = await fetch(`/api/gallery?id=${id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete image");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete image");
+      }
       
       // Log activity
       try {
@@ -120,7 +123,7 @@ export default function GalleryPage() {
       await fetchGallery();
     } catch (error) {
       console.error("Error deleting image:", error);
-      alert("Failed to delete image");
+      alert(error instanceof Error ? error.message : "Failed to delete image");
     }
   };
 
@@ -244,7 +247,10 @@ export default function GalleryPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: editingItem.id, ...itemData }),
         });
-        if (!response.ok) throw new Error("Failed to update image");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to update image");
+        }
         savedItem = await response.json();
       } else {
         const response = await fetch("/api/gallery", {
@@ -252,7 +258,10 @@ export default function GalleryPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(itemData),
         });
-        if (!response.ok) throw new Error("Failed to create image");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to create image");
+        }
         savedItem = await response.json();
       }
 
@@ -284,7 +293,7 @@ export default function GalleryPage() {
       await fetchGallery();
     } catch (error) {
       console.error("Error saving image:", error);
-      alert("Failed to save image");
+      alert(error instanceof Error ? error.message : "Failed to save image");
     } finally {
       setUploading(false);
       setUploadProgress(0);
