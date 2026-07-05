@@ -1,10 +1,6 @@
 {
   "redirects": [
     {
-      "source": "/googlea7d8e7ff5e3dcda2.html",
-      "destination": "/googlea7d8e7ff5e3dcda2.html"
-    },
-    {
       "source": "/",
       "has": [
         {
@@ -16,14 +12,14 @@
       "permanent": true
     },
     {
-      "source": "/:path*",
+      "source": "/((?!googlea7d8e7ff5e3dcda2.html).*)",
       "has": [
         {
           "type": "host",
           "value": "wisedellacademy.vercel.app"
         }
       ],
-      "destination": "https://wisedellacademy.co.zw/:path*",
+      "destination": "https://wisedellacademy.co.zw/:pathmatch*",
       "permanent": true
     }
   ],
