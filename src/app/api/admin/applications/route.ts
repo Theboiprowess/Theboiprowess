@@ -22,8 +22,21 @@ export async function GET() {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    console.log("[ADMIN] Supabase client created");
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        db: {
+          schema: 'public'
+        },
+        global: {
+          headers: {
+            'x-connection-info': 'admin-api'
+          }
+        }
+      }
+    );
+    console.log("[ADMIN] Supabase client created with service role key");
 
     // First, try to get count without any filters
     const { count: totalCount, error: countError } = await supabase
