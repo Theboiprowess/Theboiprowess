@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { User, Award, Mail } from "lucide-react";
+import Image from "next/image";
 
 const teachers = [
   {
@@ -10,6 +11,7 @@ const teachers = [
     subject: "Mathematics",
     biography: "With over 14 years of teaching experience, Mr. Shoshore founded WISEDELL ACADEMY with a vision to provide quality education.",
     yearsOfExperience: 14,
+    image: "/mr-shoshore.jpg",
   },
   {
     name: "Mr. Chabaya",
@@ -99,7 +101,17 @@ export default function TeachersGrid() {
               className="bg-background rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
             >
               <div className="h-48 bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
-                <User className="text-white/50" size={80} />
+                {teacher.image ? (
+                  <Image
+                    src={teacher.image}
+                    alt={teacher.name}
+                    width={192}
+                    height={192}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="text-white/50" size={80} />
+                )}
               </div>
               <div className="p-6">
                 <h3 className="font-heading text-xl font-bold text-primary mb-1">
