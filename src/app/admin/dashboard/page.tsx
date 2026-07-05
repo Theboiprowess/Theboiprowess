@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [gradeFilter, setGradeFilter] = useState("all");
+  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
 
   const fetchApplications = async () => {
     try {
@@ -139,13 +140,19 @@ export default function AdminDashboard() {
     if (session) {
       fetchApplications();
 
-      // Set up Supabase Realtime subscription
+      // Set up Supabase Realtime subscriptions
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL || "",
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
       );
 
-      const channel = supabase
+      console.log('[DASHBOARD] Setting up Realtime subscriptions...');
+
+      const channels: any[] = [];
+      let subscriptionSuccess = false;
+
+      // Subscribe to applications changes
+      const appChannel = supabase
         .channel('applications-changes')
         .on(
           'postgres_changes',
@@ -154,14 +161,18 @@ export default function AdminDashboard() {
             schema: 'public',
             table: 'applications'
           },
-          () => {
-            console.log('[DASHBOARD] Applications changed, refreshing...');
+          (payload) => {
+            console.log('[DASHBOARD] Applications changed:', payload);
             fetchApplications();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[DASHBOARD] Applications subscription status:', status);
+          if (status === 'SUBSCRIBED') subscriptionSuccess = true;
+        });
+      channels.push(appChannel);
 
-      // Also subscribe to gallery changes for stats
+      // Subscribe to gallery changes
       const galleryChannel = supabase
         .channel('gallery-changes')
         .on(
@@ -171,19 +182,131 @@ export default function AdminDashboard() {
             schema: 'public',
             table: 'gallery'
           },
-          () => {
-            console.log('[DASHBOARD] Gallery changed, refreshing...');
+          (payload) => {
+            console.log('[DASHBOARD] Gallery changed:', payload);
             fetchApplications();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[DASHBOARD] Gallery subscription status:', status);
+          if (status === 'SUBSCRIBED') subscriptionSuccess = true;
+        });
+      channels.push(galleryChannel);
 
+      // Subscribe to students changes
+      const studentsChannel = supabase
+        .channel('students-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'students'
+          },
+          (payload) => {
+            console.log('[DASHBOARD] Students changed:', payload);
+            fetchApplications();
+          }
+        )
+        .subscribe((status) => {
+          console.log('[DASHBOARD] Students subscription status:', status);
+          if (status === 'SUBSCRIBED') subscriptionSuccess = true;
+        });
+      channels.push(studentsChannel);
+
+      // Subscribe to teachers changes
+      const teachersChannel = supabase
+        .channel('teachers-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'teachers'
+          },
+          (payload) => {
+            console.log('[DASHBOARD] Teachers changed:', payload);
+            fetchApplications();
+          }
+        )
+        .subscribe((status) => {
+          console.log('[DASHBOARD] Teachers subscription status:', status);
+          if (status === 'SUBSCRIBED') subscriptionSuccess = true;
+        });
+      channels.push(teachersChannel);
+
+      // Subscribe to news changes
+      const newsChannel = supabase
+        .channel('news-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'news'
+          },
+          (payload) => {
+            console.log('[DASHBOARD] News changed:', payload);
+            fetchApplications();
+          }
+        )
+        .subscribe((status) => {
+          console.log('[DASHBOARD] News subscription status:', status);
+          if (status === 'SUBSCRIBED') subscriptionSuccess = true;
+        });
+      channels.push(newsChannel);
+
+      // Subscribe to events changes
+      const eventsChannel = supabase
+        .channel('events-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'events'
+          },
+          (payload) => {
+            console.log('[DASHBOARD] Events changed:', payload);
+            fetchApplications();
+          }
+        )
+        .subscribe((status) => {
+          console.log('[DASHBOARD] Events subscription status:', status);
+          if (status === 'SUBSCRIBED') subscriptionSuccess = true;
+        });
+      channels.push(eventsChannel);
+
+      // Fallback: Set up polling if Realtime fails after 5 seconds
+      const fallbackTimer = setTimeout(() => {
+        if (!subscriptionSuccess) {
+          console.log('[DASHBOARD] Realtime not available, enabling polling fallback');
+          setRealtimeEnabled(false);
+        }
+      }, 5000);
+
+      // Cleanup function
       return () => {
-        supabase.removeChannel(channel);
-        supabase.removeChannel(galleryChannel);
+        console.log('[DASHBOARD] Cleaning up Realtime subscriptions...');
+        clearTimeout(fallbackTimer);
+        channels.forEach(channel => {
+          supabase.removeChannel(channel);
+        });
       };
     }
   }, [session]);
+
+  // Fallback polling when Realtime is not available
+  useEffect(() => {
+    if (!realtimeEnabled && session) {
+      console.log('[DASHBOARD] Using polling fallback (30s interval)');
+      const pollInterval = setInterval(() => {
+        fetchApplications();
+      }, 30000); // Poll every 30 seconds
+
+      return () => clearInterval(pollInterval);
+    }
+  }, [realtimeEnabled, session]);
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
