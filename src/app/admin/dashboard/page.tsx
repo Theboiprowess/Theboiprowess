@@ -150,8 +150,26 @@ export default function AdminDashboard() {
         )
         .subscribe();
 
+      // Also subscribe to gallery changes for stats
+      const galleryChannel = supabase
+        .channel('gallery-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'gallery'
+          },
+          () => {
+            console.log('[DASHBOARD] Gallery changed, refreshing...');
+            fetchApplications();
+          }
+        )
+        .subscribe();
+
       return () => {
         supabase.removeChannel(channel);
+        supabase.removeChannel(galleryChannel);
       };
     }
   }, [session]);

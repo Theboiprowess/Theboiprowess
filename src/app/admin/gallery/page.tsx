@@ -58,6 +58,35 @@ export default function GalleryPage() {
 
   useEffect(() => {
     fetchGallery();
+
+    // Set up Supabase Realtime subscription for gallery changes
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+    
+    if (supabaseUrl && supabaseAnonKey) {
+      const { createClient } = require("@supabase/supabase-js");
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+      const channel = supabase
+        .channel('gallery-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'gallery'
+          },
+          () => {
+            console.log('[GALLERY] Gallery changed, refreshing...');
+            fetchGallery();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, []);
 
   const handleAddItem = () => {
