@@ -12,14 +12,14 @@
       "permanent": true
     },
     {
-      "source": "/((?!googlea7d8e7ff5e3dcda2.html).*)",
+      "source": "/:path*",
       "has": [
         {
           "type": "host",
           "value": "wisedellacademy.vercel.app"
         }
       ],
-      "destination": "https://wisedellacademy.co.zw/:pathmatch*",
+      "destination": "https://wisedellacademy.co.zw/:path*",
       "permanent": true
     }
   ],
