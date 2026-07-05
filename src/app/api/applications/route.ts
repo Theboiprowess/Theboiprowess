@@ -168,6 +168,17 @@ export async function POST(request: NextRequest) {
 
       if (resultsError) {
         console.error("[ADMISSIONS] Results upload error:", resultsError);
+        // Clean up passport photo if results upload fails
+        if (passportPhotoUrl) {
+          try {
+            const passportPhotoName = passportPhotoUrl.split('/').pop();
+            if (passportPhotoName) {
+              await supabase.storage.from("application-documents").remove([passportPhotoName]);
+            }
+          } catch (cleanupError) {
+            console.error("[ADMISSIONS] Error cleaning up passport photo:", cleanupError);
+          }
+        }
         return NextResponse.json(
           { error: `Failed to upload results document: ${resultsError.message}` },
           { status: 500 }
@@ -219,6 +230,27 @@ export async function POST(request: NextRequest) {
       console.error("[ADMISSIONS] Error code:", insertError.code);
       console.error("[ADMISSIONS] Error message:", insertError.message);
       console.error("[ADMISSIONS] Error details:", insertError.details);
+      
+      // Clean up uploaded files if database insert fails
+      if (passportPhotoUrl || resultsUploadUrl) {
+        try {
+          const filesToRemove = [];
+          if (passportPhotoUrl) {
+            const passportPhotoName = passportPhotoUrl.split('/').pop();
+            if (passportPhotoName) filesToRemove.push(passportPhotoName);
+          }
+          if (resultsUploadUrl) {
+            const resultsUploadName = resultsUploadUrl.split('/').pop();
+            if (resultsUploadName) filesToRemove.push(resultsUploadName);
+          }
+          if (filesToRemove.length > 0) {
+            await supabase.storage.from("application-documents").remove(filesToRemove);
+            console.log("[ADMISSIONS] Cleaned up uploaded files after database error");
+          }
+        } catch (cleanupError) {
+          console.error("[ADMISSIONS] Error cleaning up files:", cleanupError);
+        }
+      }
       
       // Provide specific error messages based on error type
       if (insertError.code === "23505") {
