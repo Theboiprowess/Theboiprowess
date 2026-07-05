@@ -108,10 +108,6 @@ export default function TeachersGrid() {
                 <p className="text-secondary font-semibold text-sm mb-3">
                   {teacher.position}
                 </p>
-                <div className="flex items-center gap-2 text-gray-600 text-sm mb-3">
-                  <Award size={16} />
-                  <span>{teacher.subject}</span>
-                </div>
                 <div className="flex items-center gap-2 text-gray-600 text-sm mb-4">
                   <Mail size={16} />
                   <span>{teacher.yearsOfExperience} years experience</span>
