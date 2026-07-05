@@ -61,9 +61,11 @@ export default function AdminDashboard() {
 
   const fetchApplications = async () => {
     try {
+      console.log("[DASHBOARD] Fetching applications...");
       const response = await fetch("/api/admin/applications");
       if (!response.ok) throw new Error("Failed to fetch applications");
       const data = await response.json();
+      console.log("[DASHBOARD] Applications fetched:", data?.length || 0);
 
       setApplications(data || []);
 
@@ -84,6 +86,7 @@ export default function AdminDashboard() {
       }).length || 0;
 
       // Fetch other statistics
+      console.log("[DASHBOARD] Fetching other statistics...");
       const [studentsRes, teachersRes, newsRes, eventsRes, galleryRes] = await Promise.all([
         fetch("/api/students"),
         fetch("/api/teachers"),
@@ -97,6 +100,14 @@ export default function AdminDashboard() {
       const news = newsRes.ok ? await newsRes.json() : [];
       const events = eventsRes.ok ? await eventsRes.json() : [];
       const gallery = galleryRes.ok ? await galleryRes.json() : [];
+
+      console.log("[DASHBOARD] Statistics fetched:", {
+        students: students.length,
+        teachers: teachers.length,
+        news: news.length,
+        events: events.length,
+        gallery: gallery.length,
+      });
 
       setStats({
         total: data?.length || 0,
@@ -112,7 +123,7 @@ export default function AdminDashboard() {
         gallery: Array.isArray(gallery) ? gallery.length : 0,
       });
     } catch (error) {
-      console.error("Error fetching applications:", error);
+      console.error("[DASHBOARD] Error fetching applications:", error);
     } finally {
       setLoading(false);
     }
