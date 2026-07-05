@@ -2,8 +2,7 @@
   "redirects": [
     {
       "source": "/googlea7d8e7ff5e3dcda2.html",
-      "destination": "/googlea7d8e7ff5e3dcda2.html",
-      "permanent": false
+      "destination": "/googlea7d8e7ff5e3dcda2.html"
     },
     {
       "source": "/",
@@ -14,8 +13,7 @@
         }
       ],
       "destination": "https://wisedellacademy.co.zw",
-      "permanent": true,
-      "statusCode": 301
+      "permanent": true
     },
     {
       "source": "/:path*",
@@ -26,8 +24,7 @@
         }
       ],
       "destination": "https://wisedellacademy.co.zw/:path*",
-      "permanent": true,
-      "statusCode": 301
+      "permanent": true
     }
   ],
   "headers": [
